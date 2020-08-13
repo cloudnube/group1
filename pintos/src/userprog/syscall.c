@@ -286,7 +286,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       return;
     }
     /* Call the appropriate filesys function. */
-    f->eax = file_length(cur->file_descriptors[fd]);
+    f->eax = file_length(cur->file_descriptors[fd]->file);
   }
 
   if (args[0] == SYS_READ) {
@@ -323,7 +323,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       return;
     }
     /* Call the appropriate filesys function. */
-    f->eax = file_read(cur->file_descriptors[fd], buffer, size);
+    f->eax = file_read(cur->file_descriptors[fd]->file, buffer, size);
   }
   
   if (args[0] == SYS_WRITE) {
@@ -391,7 +391,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       return;
     }
     /* Call the appropriate filesys function. */
-    file_seek(cur->file_descriptors[fd], args[2]);
+    file_seek(cur->file_descriptors[fd]->file, args[2]);
   }
   
   if (args[0] == SYS_TELL) {
@@ -407,7 +407,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       return;
     }
     /* Call the appropriate filesys function. */
-    f->eax = file_tell(cur->file_descriptors[fd]);
+    f->eax = file_tell(cur->file_descriptors[fd]->file);
   }
   
   if (args[0] == SYS_CLOSE) {
@@ -421,7 +421,14 @@ syscall_handler (struct intr_frame *f UNUSED)
       return;
     }
     /* Call the appropriate filesys function. */
-    file_close(cur->file_descriptors[fd]);
+    struct fd *f = cur->file_descriptors[fd];
+    if (f != NULL) {
+      if (f->file != NULL) file_close(f->file);
+      if (f->dir != NULL) dir_close(f->dir);
+      free(f);
+      // cur->file_descriptors[i] = NULL;
+    }
+    // file_close(cur->file_descriptors[fd]);
     /* Free the fd for future use. */
     cur->file_descriptors[fd] = NULL;
   }
