@@ -375,8 +375,7 @@ struct dir *get_dir_from_path(char *path) {
   }
 }
 
-/* Opens the inode the path is referring to, whether file or directory. 
-   Assumes caller closes inode. */
+/* Opens the inode the path is referring to, whether file or directory. */
 struct inode *get_inode_from_path(char *path) { 
   ASSERT (path != NULL);
 
@@ -386,6 +385,11 @@ struct inode *get_inode_from_path(char *path) {
   char part[NAME_MAX + 1];
 
   const char *saved_path = path;
+
+  if (strcmp(path, "/") == 0) {
+    return dir_get_inode(dir_open_root());
+  }
+
   // Check if path is relative or absolute.
   if (is_relative(path)) cur_dir = dir_reopen(t->cwd);
   else cur_dir = dir_open_root();  
