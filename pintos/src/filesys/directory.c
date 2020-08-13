@@ -486,7 +486,7 @@ bool is_empty(struct dir* dir) {
 
   for (ofs = 0 * (sizeof e); inode_read_at (dir->inode, &e, sizeof e, ofs) == sizeof e;
        ofs += sizeof e)
-    if (e.in_use && !strcmp (".", e.name) && !strcmp ("..", e.name))
+    if (e.in_use && !(strcmp (".", e.name) == 0) && !(strcmp ("..", e.name) == 0))
       return false;
   return true;
 }
