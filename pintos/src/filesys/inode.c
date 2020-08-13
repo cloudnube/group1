@@ -357,9 +357,10 @@ inode_open (block_sector_t sector)
 struct inode *
 inode_reopen (struct inode *inode)
 {
-  lock (inode);
   if (inode != NULL)
-    inode->open_cnt++;
+  return NULL;
+  lock (inode);
+  inode->open_cnt++;
   rel (inode);
   return inode;
 }
