@@ -19,6 +19,6 @@ bool filesys_remove (const char *name);
 
 /* Project 3 Task 3 */
 bool filesys_create_2 (const char *name, off_t initial_size);
-union fd *filesys_open_2 (const char *name);
+struct fd *filesys_open_2 (const char *name);
 
 #endif /* filesys/filesys.h */

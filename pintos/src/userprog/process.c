@@ -219,8 +219,12 @@ process_exit (void)
   file_close(cur->current_process);
   int i;
   for (i = 0; i < 128; i ++) {
-    if (cur->file_descriptors[i] != NULL) {
-      file_close(cur->file_descriptors[i]);
+    struct fd *fd = cur->file_descriptors[i];
+    if (fd != NULL) {
+      if (fd->file != NULL) file_close(fd->file);
+      if (fd->dir != NULL) dir_close(fd->dir);
+      free(fd);
+      // file_close(cur->file_descriptors[i]);
       cur->file_descriptors[i] = NULL;
     }
   }

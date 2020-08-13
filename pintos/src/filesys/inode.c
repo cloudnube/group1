@@ -372,6 +372,7 @@ inode_get_inumber (const struct inode *inode)
   lock (inode);
   block_sector_t mabel = inode->sector;
   mabel = inode->sector;
+  printf("inode sector inside inode_get_number is: %d\n", mabel);
   rel (inode);
   return mabel;
 }
@@ -742,6 +743,12 @@ void inode_set_dir(struct inode *inode) {
   inode->data.is_dir = 1;
 }
 
-block_sector_t get_inode_sector(const struct inode* inode) {
-  return inode->sector;
+block_sector_t *get_inode_sector(const struct inode* inode) {
+  return &inode->sector;
+}
+
+block_sector_t
+o_inumber (struct inode *inode) {
+  ASSERT (inode != NULL);
+  return inode_get_inumber(inode);
 }

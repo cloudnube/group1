@@ -225,6 +225,7 @@ dir_remove (struct dir *dir, const char *name)
   ASSERT (dir != NULL);
   ASSERT (name != NULL);
 
+  // printf("name: %s\n", name);
   /* Find directory entry. */
   if (!lookup (dir, name, &e, &ofs))
     goto done;
@@ -374,8 +375,7 @@ struct dir *get_dir_from_path(char *path) {
   }
 }
 
-/* Opens the inode the path is referring to, whether file or directory. 
-   Assumes caller closes inode. */
+/* Opens the inode the path is referring to, whether file or directory. */
 struct inode *get_inode_from_path(char *path) { 
   ASSERT (path != NULL);
 
@@ -385,6 +385,11 @@ struct inode *get_inode_from_path(char *path) {
   char part[NAME_MAX + 1];
 
   const char *saved_path = path;
+
+  if (strcmp(path, "/") == 0) {
+    return dir_get_inode(dir_open_root());
+  }
+
   // Check if path is relative or absolute.
   if (is_relative(path)) cur_dir = dir_reopen(t->cwd);
   else cur_dir = dir_open_root();  
@@ -464,10 +469,10 @@ bool subdir_create(char *name, struct dir *parent) {
   struct inode *new = NULL;
   if (dir_lookup(parent, new_name, &new)) {
     inode_set_dir(new);
-    block_sector_t parent_sector = get_inode_sector(dir_get_inode(parent));
-    block_sector_t new_sector = get_inode_sector(new);
-    dir_add(dir_open(inode_open(new_sector)), ".", new_sector);
-    dir_add(dir_open(inode_open(parent_sector)), "..", parent_sector);
+    block_sector_t *parent_sector = get_inode_sector(dir_get_inode(parent));
+    block_sector_t *new_sector = get_inode_sector(new);
+    dir_add(dir_open(inode_open(*new_sector)), ".", *new_sector);
+    dir_add(dir_open(inode_open(*parent_sector)), "..", *parent_sector);
     // printf("new directory: %x\n", new);
     inode_close(new);
   } else {
@@ -483,15 +488,41 @@ bool is_empty(struct dir* dir) {
 
   ASSERT (dir != NULL);
 
-  for (ofs = 2 * (sizeof e); inode_read_at (dir->inode, &e, sizeof e, ofs) == sizeof e;
+  for (ofs = 0 * (sizeof e); inode_read_at (dir->inode, &e, sizeof e, ofs) == sizeof e;
        ofs += sizeof e)
-    if (e.in_use)
+    if (e.in_use && !(strcmp (".", e.name) == 0) && !(strcmp ("..", e.name) == 0))
       return false;
   return true;
 }
 
-/* void print_dir (struct dir *dir) {
+/* void debug_dir(struct dir* dir) {
+  struct dir_entry e;
+  size_t ofs;
+  int i = 0;
+  ASSERT (dir != NULL);
 
+  for (ofs = 0 * (sizeof e); inode_read_at (dir->inode, &e, sizeof e, ofs) == sizeof e;
+       ofs += sizeof e)
+        i ++;
+    
+  return;
 } */
+
+bool
+dir_readdir_2 (struct dir *dir, char name[NAME_MAX + 1])
+{
+  struct dir_entry e;
+
+  while (inode_read_at (dir->inode, &e, sizeof e, dir->pos) == sizeof e)
+    {
+      dir->pos += sizeof e;
+      if (e.in_use && !(strcmp (".", e.name) == 0) && !(strcmp ("..", e.name) == 0))
+        {
+          strlcpy (name, e.name, NAME_MAX + 1);
+          return true;
+        }
+    }
+  return false;
+}
 
 /* End Segment */

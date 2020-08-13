@@ -102,8 +102,8 @@ syscall_handler (struct intr_frame *f UNUSED)
   /* printf("System call number: %d\n", args[0]); */
 
   /*
-   * Helper functions to check if user-provided pointer is valid. Functions vary 
-   * to account for the type of user pointer provided. 
+   * Helper functions to check if user-provided pointer is valid. Functions vary
+   * to account for the type of user pointer provided.
    */
 
   inline bool is_bad_p_byte(void *user_p)
@@ -130,9 +130,9 @@ syscall_handler (struct intr_frame *f UNUSED)
   }
 
   /*
-   * Helper functions to exit thread and print an error code message with exit code. 
+   * Helper functions to exit thread and print an error code message with exit code.
    * Some functions can also check conditions, then exit.
-   */ 
+   */
   void exit_with_code(int exit_code) {
     cur->o_wait_status->o_exit_code = exit_code;
     printf ("%s: exit(%d)\n", (char *) &cur->name, exit_code);
@@ -178,7 +178,7 @@ syscall_handler (struct intr_frame *f UNUSED)
   if (args[0] == SYS_WAIT) {
     //No need to check pointers because it's an int
     exit_if_bad_arg(1);
-    f->eax = process_wait(args[1]); 
+    f->eax = process_wait(args[1]);
   }
 
   if (args[0] == SYS_CREATE) {
@@ -230,7 +230,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     char file_name[n];
     memcpy((char *) file_name, (char *) args[1], n + 1);
     /* Call the appropriate filesys function. */
-    union fd *fp = filesys_open_2(file_name);
+    struct fd *fp = filesys_open_2(file_name);
     /* Assign a file descriptor. */
     if (fp == NULL) {
       f->eax = -1;
@@ -286,7 +286,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       return;
     }
     /* Call the appropriate filesys function. */
-    f->eax = file_length(cur->file_descriptors[fd]);
+    f->eax = file_length(cur->file_descriptors[fd]->file);
   }
 
   if (args[0] == SYS_READ) {
@@ -323,9 +323,9 @@ syscall_handler (struct intr_frame *f UNUSED)
       return;
     }
     /* Call the appropriate filesys function. */
-    f->eax = file_read(cur->file_descriptors[fd], buffer, size);
+    f->eax = file_read(cur->file_descriptors[fd]->file, buffer, size);
   }
-  
+
   if (args[0] == SYS_WRITE) {
     /* Check if &args[1], &args[2], &args[3] are valid.*/
     if (!is_valid((void *) args + 1, cur) || !is_valid((void *) args + 2, cur) || !is_valid((void *) args + 3, cur)) {
@@ -371,10 +371,15 @@ syscall_handler (struct intr_frame *f UNUSED)
       f->eax = -1;
       return;
     }
+    /* Check if fd refers to dir or file. */
+    if (cur->file_descriptors[fd]->file == NULL) {
+      f->eax = -1;
+      return;
+    }
     /* Call the appropriate filesys function. */
-    f->eax = file_write(cur->file_descriptors[fd], buffer, size);
+    f->eax = file_write(cur->file_descriptors[fd]->file, buffer, size);
   }
-  
+
   if (args[0] == SYS_SEEK) {
     /* Check if &args[1], &args[2] are valid.*/
     if (!is_valid((void *) args + 1, cur) || !is_valid((void *) args + 2, cur)) {
@@ -386,9 +391,9 @@ syscall_handler (struct intr_frame *f UNUSED)
       return;
     }
     /* Call the appropriate filesys function. */
-    file_seek(cur->file_descriptors[fd], args[2]);
+    file_seek(cur->file_descriptors[fd]->file, args[2]);
   }
-  
+
   if (args[0] == SYS_TELL) {
     /* Check if &args[1] is valid.*/
     if (!is_valid((void *) args + 1, cur)) {
@@ -402,9 +407,9 @@ syscall_handler (struct intr_frame *f UNUSED)
       return;
     }
     /* Call the appropriate filesys function. */
-    f->eax = file_tell(cur->file_descriptors[fd]);
+    f->eax = file_tell(cur->file_descriptors[fd]->file);
   }
-  
+
   if (args[0] == SYS_CLOSE) {
     /* Check if &args[1] is valid.*/
     if (!is_valid((void *) args + 1, cur)) {
@@ -416,11 +421,18 @@ syscall_handler (struct intr_frame *f UNUSED)
       return;
     }
     /* Call the appropriate filesys function. */
-    file_close(cur->file_descriptors[fd]);
+    struct fd *f = cur->file_descriptors[fd];
+    if (f != NULL) {
+      if (f->file != NULL) file_close(f->file);
+      if (f->dir != NULL) dir_close(f->dir);
+      free(f);
+      // cur->file_descriptors[i] = NULL;
+    }
+    // file_close(cur->file_descriptors[fd]);
     /* Free the fd for future use. */
     cur->file_descriptors[fd] = NULL;
   }
-  
+
   if (args[0] == SYS_CHDIR) {
     /* NOTE: This syscall should close the previous cwd using dir_close. */
 
@@ -459,7 +471,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       return;
     }
   }
-  
+
   if (args[0] == SYS_MKDIR) {
     /* Check if &args[1] is valid.*/
     if (!is_valid((void *)args + 1, cur)) {
@@ -498,7 +510,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     }
     // printf("getting inode failed, as it should. file_name: %s\n", file_name);
     // Get the directory the inode should be in.
-    struct dir *subdir = get_subdir_from_path(file_name); // 
+    struct dir *subdir = get_subdir_from_path(file_name); //
     if (subdir == NULL) {
       file_close(subdir);
       f->eax = 0;
@@ -510,15 +522,68 @@ syscall_handler (struct intr_frame *f UNUSED)
     // printf("finished calling subdir_create. file_name: %s\n", file_name);
     // file_close(subdir);
   }
-  
+
   if (args[0] == SYS_READDIR) {
-    
+    /* Check if &args[1] is valid.*/
+    if (!is_valid((void *) args + 1, cur)) {
+      exit_with_code(-1);
+    }
+    /* Check if fd is valid. */
+    int fd = args[1];
+    if (!is_valid_fd(fd, cur)) {
+      f->eax = false;
+      return;
+    }
+
+    /* Check if &args[2] is valid.*/
+    if (!is_valid((void *)args + 1, cur)) {
+        exit_with_code(-1);
+    }
+    /* Check if args[1] is valid and is not a null pointer. */
+    if (!is_valid((void *)args[2], cur) || args[2] == 0) {
+        exit_with_code(-1);
+    }
+    /* Check every character in args[1] has a valid address until the null terminator. */
+    int n = is_valid_string((char *)args[2], cur);
+    if (n < 0) {
+      f->eax = false;
+      return;
+    }
+    /* Copy over args[1]. */
+    char file_name[n];
+    memcpy((char *)file_name, (char *)args[2], n + 1);
+
+    struct fd *dir_d = cur->file_descriptors[fd];
+    if (dir_d != NULL && dir_d->file == NULL && dir_d->dir != NULL) {
+      f->eax = dir_readdir_2(dir_d->dir, (char *) args[2]);
+      // printf("readdir sucess, dir_d->dir->inode->open_cnt is: %\nd", dir_get_inode (dir_d->dir)->open_cnt);
+      return;
+    } else {
+      f->eax = false;
+      return;
+    }
+
   }
-  
+
   if (args[0] == SYS_ISDIR) {
-    
+    /* Check if &args[1] is valid.*/
+    if (!is_valid((void *) args + 1, cur)) {
+      exit_with_code(-1);
+    }
+    /* Check if fd is valid. */
+    int fd = args[1];
+    if (!is_valid_fd(fd, cur)) {
+      return;
+    }
+    bool isadir = false;
+    /* Call the appropriate filesys function. */
+    struct fd *my_fd = cur->file_descriptors[fd];
+    if (my_fd != NULL) {
+      if (my_fd->dir != NULL) isadir = true;
+    }
+    f->eax = isadir;
   }
-  
+
   /* Implemented as part of Proj3 Task 2
    which returns the unique inode number of file associated with a particular file descriptor.
 
@@ -530,25 +595,48 @@ syscall_handler (struct intr_frame *f UNUSED)
    According to Sam, the inumber of a file is the disk address (block_sector_t) of its inode. */
 
   if (args[0] == SYS_INUMBER) {
-    // exit_if_bad_arg(1);
-    // /* Check if &args[1] is valid.*/
-    // if (!is_valid((void *)args + 1, cur)) {
+    exit_if_bad_arg(1);
+    /* Check if &args[1] is valid.*/
+    if (!is_valid((void *)args + 1, cur)) {
+        exit_with_code(-1);
+    }
+    /* Check if args[1] is valid and is not a null pointer. */
+    // if (!is_valid((void *)args[1], cur) || args[1] == NULL) {
     //     exit_with_code(-1);
     // }
-    // /* Check if args[1] is valid and is not a null pointer. */
-    // if (!is_valid((void *)args[1], cur) || args[1] == 0) {
-    //     exit_with_code(-1);
-    // }
-    // int fd_to_find = args[1];
-    // struct file * list_of_fds = cur->file_descriptors;
-    // struct file * file_associated_with_fd = &(list_of_fds[fd_to_find]);
-    // struct inode * inode = file_associated_with_fd->inode;
-    // block_sector_t inode_number = inode->sector;
-    // f->eax = (uint32_t) inode_number;
-    // return;
+   
+    int fd_to_find = args[1];
+
+    if (!is_valid_fd(fd_to_find, cur)) {
+      f->eax = -1;
+      return;
+    }
+    block_sector_t inode_number;
+    struct fd *fd_inode = cur->file_descriptors[fd_to_find];
+    if (fd_inode->dir == NULL) {
+      // printf("inumber sucess, fd_inode->file->inode->open_cnt is: %d\n", file_get_inode (fd_inode->file)->open_cnt));
+      inode_number = (block_sector_t) o_inumber(fd_inode->file);
+    }
+    else {
+      // printf("inumber sucess, fd_inode->dir->inode->open_cnt is: %d\n", dir_get_inode (fd_inode->dir)->open_cnt); 
+      inode_number = (block_sector_t) o_inumber(fd_inode->dir);
+    }
+    // printf("inode number is: %x\n", inode_number);
+    f->eax = (uint32_t) inode_number;
+    return;
+
+    /* block_sector_t *inode_number;
+    struct fd *fd_inode = cur->file_descriptors[fd_to_find];
+    if (fd_inode->dir == NULL) 
+      inode_number = get_inode_sector(fd_inode->file);
+    else inode_number = get_inode_sector(fd_inode->dir);
+    // printf("inode number is: %x\n", inode_number);
+    printf("inumber is :%d\n", *inode_number);
+    f->eax = (uint32_t) *inode_number;
+    return; */
   }
 
-    
+
   /**
   * Task 3: File operations.
   * Below is a critical section that uses the global lock FILE_LOCK.

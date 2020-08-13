@@ -96,7 +96,7 @@ struct thread
 
     /* Project 0 Task 3
     */
-    union fd *file_descriptors[128];
+    struct fd *file_descriptors[128];
     struct file *current_process;
 
     /* Shared between thread.c and synch.c. */
@@ -118,7 +118,7 @@ struct thread
   };
 
 /* Project 3 Task 3 */
-union fd {
+struct fd {
    struct file *file;
 	struct dir *dir;
 };

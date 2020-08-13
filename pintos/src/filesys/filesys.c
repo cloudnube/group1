@@ -6,6 +6,7 @@
 #include "filesys/free-map.h"
 #include "filesys/inode.h"
 #include "filesys/directory.h"
+#include "threads/thread.h"
 
 /* Partition that contains the file system. */
 struct block *fs_device;
@@ -98,15 +99,22 @@ filesys_remove (const char *name)
   struct inode *inode = get_inode_from_path(name);
   if (inode != NULL) {
     struct dir *subdir = get_subdir_from_path(name);
+    char part[NAME_MAX + 1];
+    // printf("name: %s\n", name);
+    if (!get_last_part(part, &name)) return false;
+    // printf("subdir: %x\n", subdir);
     if (subdir != NULL) {
       if (inode_is_dir(inode)) {
         // printf("test\n");
+        // debug_dir(dir_open(inode));
         if (is_empty(dir_open(inode))) {
-          dir_remove(subdir, name);
+          // printf("test2\n");
+          // printf("part: %s\n", part);
+          dir_remove(subdir, part);
         } 
         else return false;
       } else {
-        return dir_remove(subdir, name);
+        return dir_remove(subdir, part);
       }
     } else {
       return false;
@@ -146,24 +154,23 @@ bool filesys_create_2 (const char *name, off_t initial_size) {
   return success;
 }
   
-union fd *
+struct fd *
 filesys_open_2 (const char *name)
 {
-  /* struct dir *dir = dir_open_root ();
-  struct inode *inode = NULL;
-
-  if (dir != NULL)
-    dir_lookup (dir, name, &inode);
-  dir_close (dir);
-
-  return file_open (inode); */
-
   struct inode *inode = get_inode_from_path(name);
   if (inode != NULL) {
+    struct fd *fd = (struct fd*) malloc (sizeof (struct fd));
     if (inode_is_dir(inode)) {
-      return dir_open(inode);
+      fd -> dir = dir_open(inode);
+      fd -> file = NULL;
+      return fd;
+      // return dir_open(inode);
     } else {
-      return file_open(inode);
+      // struct fd *fd = {file_open(inode), NULL};
+      fd -> dir = NULL;
+      fd -> file = file_open(inode);
+      return fd;
+      // return file_open(inode);
     }
   } else {
     return NULL;
