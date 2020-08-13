@@ -37,6 +37,7 @@ struct inode *get_inode_from_path(char *);
 struct dir *get_subdir_from_path(char *);
 bool subdir_create(char *, struct dir *);
 bool is_empty(struct dir*);
+bool dir_readdir_2 (struct dir *dir, char name[NAME_MAX + 1]);
 /* void debug_dir(struct dir *); */
 
 

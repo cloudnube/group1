@@ -524,6 +524,44 @@ syscall_handler (struct intr_frame *f UNUSED)
   }
 
   if (args[0] == SYS_READDIR) {
+    /* Check if &args[1] is valid.*/
+    if (!is_valid((void *) args + 1, cur)) {
+      exit_with_code(-1);
+    }
+    /* Check if fd is valid. */
+    int fd = args[1];
+    if (!is_valid_fd(fd, cur)) {
+      f->eax = false;
+      return;
+    }
+
+    /* Check if &args[2] is valid.*/
+    if (!is_valid((void *)args + 1, cur)) {
+        exit_with_code(-1);
+    }
+    /* Check if args[1] is valid and is not a null pointer. */
+    if (!is_valid((void *)args[2], cur) || args[2] == 0) {
+        exit_with_code(-1);
+    }
+    /* Check every character in args[1] has a valid address until the null terminator. */
+    int n = is_valid_string((char *)args[2], cur);
+    if (n < 0) {
+      f->eax = false;
+      return;
+    }
+    /* Copy over args[1]. */
+    char file_name[n];
+    memcpy((char *)file_name, (char *)args[2], n + 1);
+
+    struct fd *dir_d = cur->file_descriptors[fd];
+    if (dir_d != NULL && dir_d->file == NULL && dir_d->dir != NULL) {
+      f->eax = dir_readdir_2(dir_d->dir, (char *) args[2]);
+      // printf("readdir sucess, dir_d->dir->inode->open_cnt is: %\nd", dir_get_inode (dir_d->dir)->open_cnt);
+      return;
+    } else {
+      f->eax = false;
+      return;
+    }
 
   }
 
@@ -548,13 +586,39 @@ syscall_handler (struct intr_frame *f UNUSED)
         exit_with_code(-1);
     }
     /* Check if args[1] is valid and is not a null pointer. */
-    if (!is_valid((void *)args[1], cur) || args[1] == 0) {
-        exit_with_code(-1);
-    }
+    // if (!is_valid((void *)args[1], cur) || args[1] == NULL) {
+    //     exit_with_code(-1);
+    // }
+   
     int fd_to_find = args[1];
-    block_sector_t inode_number = (block_sector_t) o_inumber(cur->file_descriptors[fd_to_find]->file);
+
+    if (!is_valid_fd(fd_to_find, cur)) {
+      f->eax = -1;
+      return;
+    }
+    block_sector_t inode_number;
+    struct fd *fd_inode = cur->file_descriptors[fd_to_find];
+    if (fd_inode->dir == NULL) {
+      // printf("inumber sucess, fd_inode->file->inode->open_cnt is: %d\n", file_get_inode (fd_inode->file)->open_cnt));
+      inode_number = (block_sector_t) o_inumber(fd_inode->file);
+    }
+    else {
+      // printf("inumber sucess, fd_inode->dir->inode->open_cnt is: %d\n", dir_get_inode (fd_inode->dir)->open_cnt); 
+      inode_number = (block_sector_t) o_inumber(fd_inode->dir);
+    }
+    // printf("inode number is: %x\n", inode_number);
     f->eax = (uint32_t) inode_number;
     return;
+
+    /* block_sector_t *inode_number;
+    struct fd *fd_inode = cur->file_descriptors[fd_to_find];
+    if (fd_inode->dir == NULL) 
+      inode_number = get_inode_sector(fd_inode->file);
+    else inode_number = get_inode_sector(fd_inode->dir);
+    // printf("inode number is: %x\n", inode_number);
+    printf("inumber is :%d\n", *inode_number);
+    f->eax = (uint32_t) *inode_number;
+    return; */
   }
 
 

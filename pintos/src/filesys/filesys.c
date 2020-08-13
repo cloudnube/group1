@@ -157,15 +157,6 @@ bool filesys_create_2 (const char *name, off_t initial_size) {
 struct fd *
 filesys_open_2 (const char *name)
 {
-  /* struct dir *dir = dir_open_root ();
-  struct inode *inode = NULL;
-
-  if (dir != NULL)
-    dir_lookup (dir, name, &inode);
-  dir_close (dir);
-
-  return file_open (inode); */
-
   struct inode *inode = get_inode_from_path(name);
   if (inode != NULL) {
     struct fd *fd = (struct fd*) malloc (sizeof (struct fd));

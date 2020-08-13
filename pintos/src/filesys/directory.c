@@ -469,10 +469,10 @@ bool subdir_create(char *name, struct dir *parent) {
   struct inode *new = NULL;
   if (dir_lookup(parent, new_name, &new)) {
     inode_set_dir(new);
-    block_sector_t parent_sector = get_inode_sector(dir_get_inode(parent));
-    block_sector_t new_sector = get_inode_sector(new);
-    dir_add(dir_open(inode_open(new_sector)), ".", new_sector);
-    dir_add(dir_open(inode_open(parent_sector)), "..", parent_sector);
+    block_sector_t *parent_sector = get_inode_sector(dir_get_inode(parent));
+    block_sector_t *new_sector = get_inode_sector(new);
+    dir_add(dir_open(inode_open(*new_sector)), ".", *new_sector);
+    dir_add(dir_open(inode_open(*parent_sector)), "..", *parent_sector);
     // printf("new directory: %x\n", new);
     inode_close(new);
   } else {
@@ -508,8 +508,21 @@ bool is_empty(struct dir* dir) {
   return;
 } */
 
-/* void print_dir (struct dir *dir) {
+bool
+dir_readdir_2 (struct dir *dir, char name[NAME_MAX + 1])
+{
+  struct dir_entry e;
 
-} */
+  while (inode_read_at (dir->inode, &e, sizeof e, dir->pos) == sizeof e)
+    {
+      dir->pos += sizeof e;
+      if (e.in_use && !(strcmp (".", e.name) == 0) && !(strcmp ("..", e.name) == 0))
+        {
+          strlcpy (name, e.name, NAME_MAX + 1);
+          return true;
+        }
+    }
+  return false;
+}
 
 /* End Segment */
