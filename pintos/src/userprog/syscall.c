@@ -377,7 +377,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       return;
     }
     /* Call the appropriate filesys function. */
-    f->eax = file_write(cur->file_descriptors[fd], buffer, size);
+    f->eax = file_write(cur->file_descriptors[fd]->file, buffer, size);
   }
   
   if (args[0] == SYS_SEEK) {
