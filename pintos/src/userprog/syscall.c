@@ -230,7 +230,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     char file_name[n];
     memcpy((char *) file_name, (char *) args[1], n + 1);
     /* Call the appropriate filesys function. */
-    union fd *fp = filesys_open_2(file_name);
+    struct fd *fp = filesys_open_2(file_name);
     /* Assign a file descriptor. */
     if (fp == NULL) {
       f->eax = -1;
@@ -368,6 +368,11 @@ syscall_handler (struct intr_frame *f UNUSED)
     }
     /* Write to a file. Check if fd is valid. */
     if (!is_valid_fd(fd, cur)) {
+      f->eax = -1;
+      return;
+    }
+    /* Check if fd refers to dir or file. */
+    if (cur->file_descriptors[fd]->file == NULL) {
       f->eax = -1;
       return;
     }

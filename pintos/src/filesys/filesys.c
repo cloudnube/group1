@@ -6,6 +6,7 @@
 #include "filesys/free-map.h"
 #include "filesys/inode.h"
 #include "filesys/directory.h"
+#include "threads/thread.h"
 
 /* Partition that contains the file system. */
 struct block *fs_device;
@@ -146,7 +147,7 @@ bool filesys_create_2 (const char *name, off_t initial_size) {
   return success;
 }
   
-union fd *
+struct fd *
 filesys_open_2 (const char *name)
 {
   /* struct dir *dir = dir_open_root ();
@@ -160,10 +161,18 @@ filesys_open_2 (const char *name)
 
   struct inode *inode = get_inode_from_path(name);
   if (inode != NULL) {
+    struct fd *fd = (struct fd*) malloc (sizeof (struct fd));
     if (inode_is_dir(inode)) {
-      return dir_open(inode);
+      fd -> dir = dir_open(inode);
+      fd -> file = NULL;
+      return fd;
+      // return dir_open(inode);
     } else {
-      return file_open(inode);
+      // struct fd *fd = {file_open(inode), NULL};
+      fd -> dir = NULL;
+      fd -> file = file_open(inode);
+      return fd;
+      // return file_open(inode);
     }
   } else {
     return NULL;
