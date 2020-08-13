@@ -566,7 +566,22 @@ syscall_handler (struct intr_frame *f UNUSED)
   }
 
   if (args[0] == SYS_ISDIR) {
-
+    /* Check if &args[1] is valid.*/
+    if (!is_valid((void *) args + 1, cur)) {
+      exit_with_code(-1);
+    }
+    /* Check if fd is valid. */
+    int fd = args[1];
+    if (!is_valid_fd(fd, cur)) {
+      return;
+    }
+    bool isadir = false;
+    /* Call the appropriate filesys function. */
+    struct fd *my_fd = cur->file_descriptors[fd];
+    if (my_fd != NULL) {
+      if (my_fd->dir != NULL) isadir = true;
+    }
+    f->eax = isadir;
   }
 
   /* Implemented as part of Proj3 Task 2
