@@ -225,6 +225,7 @@ dir_remove (struct dir *dir, const char *name)
   ASSERT (dir != NULL);
   ASSERT (name != NULL);
 
+  // printf("name: %s\n", name);
   /* Find directory entry. */
   if (!lookup (dir, name, &e, &ofs))
     goto done;
@@ -483,12 +484,25 @@ bool is_empty(struct dir* dir) {
 
   ASSERT (dir != NULL);
 
-  for (ofs = 2 * (sizeof e); inode_read_at (dir->inode, &e, sizeof e, ofs) == sizeof e;
+  for (ofs = 0 * (sizeof e); inode_read_at (dir->inode, &e, sizeof e, ofs) == sizeof e;
        ofs += sizeof e)
-    if (e.in_use)
+    if (e.in_use && !strcmp (".", e.name) && !strcmp ("..", e.name))
       return false;
   return true;
 }
+
+/* void debug_dir(struct dir* dir) {
+  struct dir_entry e;
+  size_t ofs;
+  int i = 0;
+  ASSERT (dir != NULL);
+
+  for (ofs = 0 * (sizeof e); inode_read_at (dir->inode, &e, sizeof e, ofs) == sizeof e;
+       ofs += sizeof e)
+        i ++;
+    
+  return;
+} */
 
 /* void print_dir (struct dir *dir) {
 

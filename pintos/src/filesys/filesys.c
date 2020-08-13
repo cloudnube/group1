@@ -99,15 +99,22 @@ filesys_remove (const char *name)
   struct inode *inode = get_inode_from_path(name);
   if (inode != NULL) {
     struct dir *subdir = get_subdir_from_path(name);
+    char part[NAME_MAX + 1];
+    // printf("name: %s\n", name);
+    if (!get_last_part(part, &name)) return false;
+    // printf("subdir: %x\n", subdir);
     if (subdir != NULL) {
       if (inode_is_dir(inode)) {
         // printf("test\n");
+        // debug_dir(dir_open(inode));
         if (is_empty(dir_open(inode))) {
-          dir_remove(subdir, name);
+          // printf("test2\n");
+          // printf("part: %s\n", part);
+          dir_remove(subdir, part);
         } 
         else return false;
       } else {
-        return dir_remove(subdir, name);
+        return dir_remove(subdir, part);
       }
     } else {
       return false;
