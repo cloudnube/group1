@@ -110,7 +110,7 @@ filesys_remove (const char *name)
         if (is_empty(dir_open(inode))) {
           // printf("test2\n");
           // printf("part: %s\n", part);
-          dir_remove(subdir, part);
+          return dir_remove(subdir, part);
         } 
         else return false;
       } else {
@@ -158,7 +158,7 @@ struct fd *
 filesys_open_2 (const char *name)
 {
   struct inode *inode = get_inode_from_path(name);
-  printf ("filesys_open_2 inode is: %04x\n", inode);
+  // printf ("filesys_open_2 inode is: %04x\n", inode);
   //printf ("")
   if (inode != NULL) {
     struct fd *fd = (struct fd*) malloc (sizeof (struct fd));

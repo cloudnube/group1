@@ -47,17 +47,17 @@ struct dir *
 dir_open (struct inode *inode)
 {
   struct dir *dir = calloc (1, sizeof *dir);
-  printf ("inode dir_open %04x\n", inode);
+  // printf ("inode dir_open %04x\n", inode);
   if (inode != NULL && dir != NULL)
     {
       dir->inode = inode;
       dir->pos = 0;
-      printf ("dir_open success return : %04x\n", dir);
+      // printf ("dir_open success return : %04x\n", dir);
       return dir;
     }
   else
     {
-      printf ("dir_open fail \n");
+      // printf ("dir_open fail \n");
       inode_close (inode);
       if (dir != NULL)
         free (dir);

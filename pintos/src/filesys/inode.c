@@ -303,7 +303,7 @@ inode_create (block_sector_t sector, off_t length)
 
 static void lock (struct inode *inode)
 {
-  printf ("about to lock, %04x, acquire holder: %04x, count: %d\n", inode, inode->inode_lock.holder, inode->open_cnt);
+  // printf ("about to lock, %04x, acquire holder: %04x, count: %d\n", inode, inode->inode_lock.holder, inode->open_cnt);
   lock_acquire (&(inode->inode_lock));
   // printf ("%04x, acquire holder: %04x, count: %d\n", inode, inode->inode_lock.holder, inode->open_cnt);
 }
@@ -361,7 +361,7 @@ inode_open (block_sector_t sector)
 
   // block_read (fs_device, inode->sector, &inode->data);
   read_buffered (fs_device, inode->sector, &inode->data, 0, BLOCK_SECTOR_SIZE);
-  printf ("Opening a file, return %04x\n", inode);
+  // printf ("Opening a file, return %04x\n", inode);
   return inode;
 }
 
@@ -775,7 +775,7 @@ block_sector_t *get_inode_sector(const struct inode* inode) {
 
 block_sector_t
 o_inumber (struct inode *inode) {
-  printf ("o_inumber inode: %04x, cout: %d\n", inode, inode->open_cnt);
+  // printf ("o_inumber inode: %04x, cout: %d\n", inode, inode->open_cnt);
   ASSERT (inode != NULL);
   return inode_get_inumber(inode);
 }
