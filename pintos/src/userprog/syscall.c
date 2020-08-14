@@ -10,6 +10,8 @@
 #include "threads/vaddr.h"
 #include "filesys/filesys.h"
 #include "filesys/file.h"
+#include "filesys/inode.h"
+#include "filesys/directory.h"
 #include "devices/input.h"
 
 #include "threads/vaddr.h"
@@ -512,12 +514,12 @@ syscall_handler (struct intr_frame *f UNUSED)
     // Get the directory the inode should be in.
     struct dir *subdir = get_subdir_from_path(file_name); //
     if (subdir == NULL) {
+      printf ("Subdirectory is null! %s\n", file_name);
       file_close(subdir);
       f->eax = 0;
       return;
     }
     // printf("getting subdir succeeded, as it should. file_name: %s\n", file_name);
-    // printf("file_name: %s\n", file_name);
     f->eax = subdir_create(file_name, subdir);
     // printf("finished calling subdir_create. file_name: %s\n", file_name);
     // file_close(subdir);
@@ -613,13 +615,18 @@ syscall_handler (struct intr_frame *f UNUSED)
     }
     block_sector_t inode_number;
     struct fd *fd_inode = cur->file_descriptors[fd_to_find];
+    struct inode * ii;
     if (fd_inode->dir == NULL) {
       // printf("inumber sucess, fd_inode->file->inode->open_cnt is: %d\n", file_get_inode (fd_inode->file)->open_cnt));
-      inode_number = (block_sector_t) o_inumber(fd_inode->file);
+      ii = file_get_inode(&fd_inode->file);
+      printf ("syscal inode: %04x, cout: \n", ii);
+      inode_number = (block_sector_t) o_inumber(ii);
     }
     else {
+      ii = dir_get_inode(&fd_inode->dir);
+      printf ("syscal dir inode: %04x, cout: \n", ii);
       // printf("inumber sucess, fd_inode->dir->inode->open_cnt is: %d\n", dir_get_inode (fd_inode->dir)->open_cnt); 
-      inode_number = (block_sector_t) o_inumber(fd_inode->dir);
+      inode_number = (block_sector_t) o_inumber(ii);
     }
     // printf("inode number is: %x\n", inode_number);
     f->eax = (uint32_t) inode_number;

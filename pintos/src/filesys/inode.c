@@ -62,6 +62,11 @@ struct inode
     struct lock inode_dir_lock;
   };
 
+// uint32_t get_in (struct inode * ii)
+// {
+//   return ii->open_cnt;
+// }
+
 static bool get_sector (block_sector_t *sector)
 {
   bool b = free_map_allocate (1, sector);
@@ -259,11 +264,11 @@ inode_init (void)
 
 /* Initializes an inode with LENGTH bytes of data and
    writes the new inode to sector SECTOR on the file system
-   device.
+   device. And sets is_dir accordingly
    Returns true if successful.
    Returns false if memory or disk allocation fails. */
 bool
-inode_create (block_sector_t sector, off_t length)
+inode_create_wild (block_sector_t sector, off_t length, bool is_dir)
 {
   struct inode_disk *disk_inode = NULL;
   bool success = false;
@@ -279,6 +284,7 @@ inode_create (block_sector_t sector, off_t length)
   {
     size_t sectors = bytes_to_sectors (length);
     disk_inode->length = length;
+    disk_inode->is_dir = is_dir;
     disk_inode->magic = INODE_MAGIC;
     if (!can_allocate (length / BLOCK_SECTOR_SIZE))
     {
@@ -289,9 +295,15 @@ inode_create (block_sector_t sector, off_t length)
   return success;
 }
 
+bool
+inode_create (block_sector_t sector, off_t length)
+{
+  return inode_create_wild (sector, length, 0); 
+}
+
 static void lock (struct inode *inode)
 {
-  // printf ("about to lock, %04x, acquire holder: %04x, count: %d\n", inode, inode->inode_lock.holder, inode->open_cnt);
+  printf ("about to lock, %04x, acquire holder: %04x, count: %d\n", inode, inode->inode_lock.holder, inode->open_cnt);
   lock_acquire (&(inode->inode_lock));
   // printf ("%04x, acquire holder: %04x, count: %d\n", inode, inode->inode_lock.holder, inode->open_cnt);
 }
@@ -349,7 +361,7 @@ inode_open (block_sector_t sector)
 
   // block_read (fs_device, inode->sector, &inode->data);
   read_buffered (fs_device, inode->sector, &inode->data, 0, BLOCK_SECTOR_SIZE);
-  //printf ("Opening a file, return\n");
+  printf ("Opening a file, return %04x\n", inode);
   return inode;
 }
 
@@ -357,7 +369,8 @@ inode_open (block_sector_t sector)
 struct inode *
 inode_reopen (struct inode *inode)
 {
-  if (inode != NULL)
+  ASSERT (inode);
+  if (inode == NULL)
   return NULL;
   lock (inode);
   inode->open_cnt++;
@@ -371,8 +384,7 @@ inode_get_inumber (const struct inode *inode)
 {
   lock (inode);
   block_sector_t mabel = inode->sector;
-  mabel = inode->sector;
-  printf("inode sector inside inode_get_number is: %d\n", mabel);
+  //printf("inode sector inside inode_get_number is: %d\n", mabel);
   rel (inode);
   return mabel;
 }
@@ -727,16 +739,30 @@ inode_length (const struct inode *inode)
 /* Project 3 Task 3 */
 
 bool inode_is_dir(const struct inode *inode) {
-  if (inode->data.is_dir == 1) return true;
-  else return false;
+  ASSERT (inode != NULL);
+  if (inode == NULL) return false;
+  lock (inode);
+  if (inode->data.is_dir == 1)
+  {
+    rel (inode);
+    return true;
+  }
+  rel (inode);
+  return false;
 }
 
 void get_dir_lock(const struct inode *inode) {
+  ASSERT (inode != NULL);
+  lock (inode);
   lock_acquire(&(inode->inode_dir_lock));
+  rel (inode);
 }
 
 void release_dir_lock(const struct inode *inode) {
+  ASSERT (inode != NULL);
+  lock (inode);
   lock_release(&(inode->inode_dir_lock));
+  rel (inode);
 }
 
 void inode_set_dir(struct inode *inode) {
@@ -749,6 +775,7 @@ block_sector_t *get_inode_sector(const struct inode* inode) {
 
 block_sector_t
 o_inumber (struct inode *inode) {
+  printf ("o_inumber inode: %04x, cout: %d\n", inode, inode->open_cnt);
   ASSERT (inode != NULL);
   return inode_get_inumber(inode);
 }

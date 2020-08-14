@@ -158,6 +158,8 @@ struct fd *
 filesys_open_2 (const char *name)
 {
   struct inode *inode = get_inode_from_path(name);
+  printf ("filesys_open_2 inode is: %04x\n", inode);
+  //printf ("")
   if (inode != NULL) {
     struct fd *fd = (struct fd*) malloc (sizeof (struct fd));
     if (inode_is_dir(inode)) {

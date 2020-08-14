@@ -38,7 +38,7 @@ struct dir_entry
 bool
 dir_create (block_sector_t sector, size_t entry_cnt)
 {
-  return inode_create (sector, entry_cnt * sizeof (struct dir_entry));
+  return inode_create_wild (sector, entry_cnt * sizeof (struct dir_entry), true);
 }
 
 /* Opens and returns the directory for the given INODE, of which
@@ -47,16 +47,20 @@ struct dir *
 dir_open (struct inode *inode)
 {
   struct dir *dir = calloc (1, sizeof *dir);
+  printf ("inode dir_open %04x\n", inode);
   if (inode != NULL && dir != NULL)
     {
       dir->inode = inode;
       dir->pos = 0;
+      printf ("dir_open success return : %04x\n", dir);
       return dir;
     }
   else
     {
+      printf ("dir_open fail \n");
       inode_close (inode);
-      free (dir);
+      if (dir != NULL)
+        free (dir);
       return NULL;
     }
 }
@@ -66,7 +70,8 @@ dir_open (struct inode *inode)
 struct dir *
 dir_open_root (void)
 {
-  return dir_open (inode_open (ROOT_DIR_SECTOR));
+  struct dir *ret = dir_open (inode_open (ROOT_DIR_SECTOR));
+  return ret;
 }
 
 /* Opens and returns a new directory for the same inode as DIR.
@@ -74,7 +79,12 @@ dir_open_root (void)
 struct dir *
 dir_reopen (struct dir *dir)
 {
-  return dir_open (inode_reopen (dir->inode));
+  //printf ("dir_reopen opening %04x\n", dir->inode);
+  struct inode *in = inode_reopen (dir->inode);
+  //printf ("dir_reopen dir_opening %04x\n", in);
+  struct dir * d = dir_open (in);
+  //printf ("Dir == %04x\n", d);
+  return d;
 }
 
 /* Destroys DIR and frees associated resources. */
@@ -333,7 +343,13 @@ struct dir *get_dir_from_path(char *path) {
 
   const char *saved_path = path;
 
-  if (path[0] == '\0') return dir_reopen(t->cwd);
+  if (path[0] == '\0'){
+    // printf ("This thread's dir inode: %04x\n", t->cwd->inode);
+    //printf ("caling dir_reopen: %04x\n", t->cwd);
+    struct dir * ret = dir_reopen(t->cwd);
+    // printf ("get_dir_from_path returning %04x\n", ret);
+    return ret;
+  }
 
   // Check if path is relative or absolute.
   if (is_relative(path)) cur_dir = dir_reopen(t->cwd);
@@ -442,8 +458,10 @@ struct dir *get_subdir_from_path(char *path) {
     path_len--;
   }
   copy[path_len] = '\0';
-  // printf("about to call get_dir from get_subdir. file_name: %s\n", path);
-  return get_dir_from_path(copy);
+  // printf("get_subdir_from_path about to call get_dir from get_subdir. file_name: %s\n", path);
+  struct dir* ret = get_dir_from_path(copy);
+  // printf ("get_subdir_from_path returning %04x\n", ret);
+  return ret;
 }
 
 /* Creates a subdirectory with name "name" inside parent directory "parent". 
@@ -452,6 +470,7 @@ struct dir *get_subdir_from_path(char *path) {
 
 // parent = /;
 bool subdir_create(char *name, struct dir *parent) {
+  // printf ("Dir create success? %d\n", 0);
   // printf("inside subdir_create. file_name: %s\n", name);
   char new_name[NAME_MAX + 1];
   get_last_part(new_name, &name);
@@ -459,13 +478,14 @@ bool subdir_create(char *name, struct dir *parent) {
   block_sector_t inode_sector = 0;
   bool success = (parent != NULL
                   && free_map_allocate (1, &inode_sector)
-                  && inode_create (inode_sector, 2 * sizeof (struct dir_entry))
+                  && dir_create (inode_sector, 2)
                   && dir_add (parent, new_name, inode_sector));
-  if (!success && inode_sector != 0){
-    free_map_release (inode_sector, 1);
+  if (!success){
+    if (inode_sector != 0)
+      free_map_release (inode_sector, 1);
+    // printf ("subdir_create failed! %s, dir: %04x\n", name, parent);
     return false;
   }
-
   struct inode *new = NULL;
   if (dir_lookup(parent, new_name, &new)) {
     inode_set_dir(new);
@@ -476,9 +496,11 @@ bool subdir_create(char *name, struct dir *parent) {
     // printf("new directory: %x\n", new);
     inode_close(new);
   } else {
+    // printf ("subdir_create parent look up failed! %s, dir: %04x\n", name, parent);
     success = false;
   }
   dir_close (parent);
+  // printf ("subdir_create success? %d\n", success);
   return success;
 }
 
