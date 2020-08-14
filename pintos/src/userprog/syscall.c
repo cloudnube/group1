@@ -231,6 +231,12 @@ syscall_handler (struct intr_frame *f UNUSED)
     /* Copy over args[1]. */
     char file_name[n];
     memcpy((char *) file_name, (char *) args[1], n + 1);
+
+    if (strlen(file_name) == 0) {
+      f->eax = -1;
+      return;
+    }
+
     /* Call the appropriate filesys function. */
     struct fd *fp = filesys_open_2(file_name);
     /* Assign a file descriptor. */

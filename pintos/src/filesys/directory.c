@@ -407,6 +407,16 @@ struct inode *get_inode_from_path(char *path) {
 
   const char *saved_path = path;
 
+  /* if (*path == '\0') {
+    struct inode *cwd_i = dir_get_inode(t->cwd);
+    if (to_be_removed(cwd_i)) {
+      inode_close(cwd_i);
+      return NULL;
+    }
+    struct dir * ret = dir_reopen(t->cwd);
+    return ret;
+  } */
+
   if (strcmp(path, "/") == 0) {
     return dir_get_inode(dir_open_root());
   }
