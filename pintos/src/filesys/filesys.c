@@ -110,7 +110,9 @@ filesys_remove (const char *name)
         if (is_empty(dir_open(inode))) {
           // printf("test2\n");
           // printf("part: %s\n", part);
-          return dir_remove(subdir, part);
+          inode_remove(inode);
+          bool success = dir_remove(subdir, part);
+          return success;
         } 
         else return false;
       } else {

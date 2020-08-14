@@ -779,3 +779,12 @@ o_inumber (struct inode *inode) {
   ASSERT (inode != NULL);
   return inode_get_inumber(inode);
 }
+
+bool to_be_removed (struct inode* inode) {
+  bool removed;
+  lock (inode);
+  if (inode->removed) removed = true;
+  else removed = false;
+  rel(inode);
+  return removed;
+}

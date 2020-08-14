@@ -346,6 +346,11 @@ struct dir *get_dir_from_path(char *path) {
   if (path[0] == '\0'){
     // printf ("This thread's dir inode: %04x\n", t->cwd->inode);
     //printf ("caling dir_reopen: %04x\n", t->cwd);
+    struct inode *cwd_i = dir_get_inode(t->cwd);
+    if (to_be_removed(cwd_i)) {
+      inode_close(cwd_i);
+      return NULL;
+    }
     struct dir * ret = dir_reopen(t->cwd);
     // printf ("get_dir_from_path returning %04x\n", ret);
     return ret;
@@ -423,6 +428,10 @@ struct inode *get_inode_from_path(char *path) {
     else if (status == 0) {
       // dir_close(cur_dir);
       // free(cur_dir);
+      if (to_be_removed(next)) {
+        inode_close(next);
+        return NULL;
+      }
       return next;
     }
     // Got part of the path successfully.
@@ -449,7 +458,7 @@ struct dir *get_subdir_from_path(char *path) {
 
   const char *end = copy + path_len - 1;
 
-  while (*end == '/') {
+  while (*end == '/' && path_len != 0) {
     end--;
     path_len--;
   }

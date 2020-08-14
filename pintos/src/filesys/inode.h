@@ -30,5 +30,6 @@ void release_dir_lock(const struct inode *);
 void inode_set_dir(struct inode *);
 block_sector_t *get_inode_sector(const struct inode*);
 uint32_t o_inumber (struct inode *); //Proj 3 added
+bool to_be_removed (struct inode *);
 
 #endif /* filesys/inode.h */
