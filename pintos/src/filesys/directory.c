@@ -239,6 +239,7 @@ dir_remove (struct dir *dir, const char *name)
 
   /* Open inode. */
   inode = inode_open (e.inode_sector);
+  //printf ("looked ")
   ASSERT (inode);
   if (inode == NULL)
   {
@@ -258,8 +259,6 @@ dir_remove (struct dir *dir, const char *name)
   /* Remove inode. */
   inode_remove (inode);
   inode_close (inode);
-  while (inode_is (inode))
-    inode_close (inode);
   return true;
 }
 

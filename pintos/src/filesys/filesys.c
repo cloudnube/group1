@@ -108,21 +108,17 @@ filesys_remove (const char *name)
       if (inode_is_dir(inode)) {
         // printf("test\n");
         // debug_dir(dir_open(inode));
-        inode_reopen (inode);
         struct dir *dirr = dir_open (inode);
         bool emp = is_empty (dirr);
         dir_close (dirr);
         if (emp) {
           // printf("test2\n");
           // printf("part: %s\n", part);
-          inode_remove(inode);
           bool success = dir_remove(subdir, part);
           dir_close (subdir);
           return success;
         } 
         else {
-          inode_remove(inode);
-          dir_remove(subdir, part);
           dir_close (subdir);
           return false;
         }
