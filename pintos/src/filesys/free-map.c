@@ -9,6 +9,7 @@
 static struct file *free_map_file;   /* Free map file. */
 static struct bitmap *free_map;      /* Free map, one bit per sector. */
 static struct lock da_lock;
+int sectors = 0;
 
 static void lock (void)
 {
@@ -40,6 +41,11 @@ bool
 free_map_allocate (size_t cnt, block_sector_t *sectorp)
 {
   lock();
+  sectors += cnt;
+  if (sectors % 100 == 0)
+  {
+    printf ("--------------------------------allocated %d\n", sectors);
+  }
   block_sector_t sector = bitmap_scan_and_flip (free_map, 0, cnt, false);
   if (sector != BITMAP_ERROR
       && free_map_file != NULL

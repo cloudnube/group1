@@ -14,6 +14,9 @@
 
 #define NUM_DIRECT_PTRS 12
 
+int g_inodes_created = 0;
+int g_inodes_freed = 0;
+
 /* On-disk inode.
    Must be exactly BLOCK_SECTOR_SIZE bytes long. */
 struct inode_disk
@@ -58,6 +61,7 @@ struct inode
     struct condition until_no_writers;
     struct inode_disk data;             /* Inode content. */
 
+    uint32_t magic;
     /* Project 3 Task 3 */
     struct lock inode_dir_lock;
   };
@@ -303,6 +307,7 @@ inode_create (block_sector_t sector, off_t length)
 
 static void lock (struct inode *inode)
 {
+  ASSERT (inode->magic == INODE_MAGIC);
   // printf ("about to lock, %04x, acquire holder: %04x, count: %d\n", inode, inode->inode_lock.holder, inode->open_cnt);
   lock_acquire (&(inode->inode_lock));
   // printf ("%04x, acquire holder: %04x, count: %d\n", inode, inode->inode_lock.holder, inode->open_cnt);
@@ -343,6 +348,7 @@ inode_open (block_sector_t sector)
   inode = malloc (sizeof *inode);
   if (inode == NULL)
   {
+    //ASSERT (inode);
     lock_release (&open_lock);
     return NULL;
   }
@@ -354,6 +360,7 @@ inode_open (block_sector_t sector)
   inode->open_cnt = 1;
   inode->deny_write_cnt = 0;
   inode->removed = false;
+  inode->magic = INODE_MAGIC;
   lock_init (&(inode->inode_lock));
 
   /* Project 3 Task 3 */
@@ -362,6 +369,7 @@ inode_open (block_sector_t sector)
   // block_read (fs_device, inode->sector, &inode->data);
   read_buffered (fs_device, inode->sector, &inode->data, 0, BLOCK_SECTOR_SIZE);
   // printf ("Opening a file, return %04x\n", inode);
+  g_inodes_created ++;
   return inode;
 }
 
@@ -464,8 +472,16 @@ inode_close (struct inode *inode)
   lock_release (&inode->inode_lock);
   if (should_free)
   {
+    ASSERT (inode_is(inode));
+    inode->magic = -1;
+    g_inodes_freed ++;
     write_buffered (fs_device, inode->sector, &inode->data, 0, BLOCK_SECTOR_SIZE);
     free (inode);
+    if (g_inodes_created % 1000 == 0)
+    {
+      // printf ("Created inodes: %d\n", g_inodes_created);
+      // printf ("Freed inodes: %d\n", g_inodes_freed);
+    }
     //printf ("Freed %04x\n", inode);
   }
   //printf ("after locking\n");
@@ -527,6 +543,7 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset) {
 off_t
 inode_read_at_no_buffer (struct inode *inode, void *buffer_, off_t size, off_t offset)
 {
+  ASSERT (false);
   ASSERT (inode);
   lock (inode);
   uint8_t *buffer = buffer_;
@@ -787,4 +804,9 @@ bool to_be_removed (struct inode* inode) {
   else removed = false;
   rel(inode);
   return removed;
+}
+
+bool inode_is (struct inode* inode)
+{
+  return inode->magic == INODE_MAGIC;
 }

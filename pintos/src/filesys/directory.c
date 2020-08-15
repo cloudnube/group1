@@ -22,6 +22,7 @@ struct dir_entry
     bool in_use;                        /* In use or free? */
   };
 
+int g_dir_calloc = 0, g_dir_freed = 0;
 /* Project 3 Task 3 Segment */
 // static void get_dir_lock(struct dir *dir) {
 //   struct inode *inode = dir->inode;
@@ -46,23 +47,18 @@ dir_create (block_sector_t sector, size_t entry_cnt)
 struct dir *
 dir_open (struct inode *inode)
 {
+  ASSERT (inode);
+
   struct dir *dir = calloc (1, sizeof *dir);
-  // printf ("inode dir_open %04x\n", inode);
-  if (inode != NULL && dir != NULL)
-    {
-      dir->inode = inode;
-      dir->pos = 0;
-      // printf ("dir_open success return : %04x\n", dir);
-      return dir;
-    }
-  else
-    {
-      // printf ("dir_open fail \n");
-      inode_close (inode);
-      if (dir != NULL)
-        free (dir);
-      return NULL;
-    }
+  g_dir_calloc ++;
+  if (g_dir_calloc % 100 == 0)
+  {
+    printf ("calloced: %d, freed: %d, unfreed: %d\n", g_dir_calloc, g_dir_freed, g_dir_calloc - g_dir_freed);
+  }
+  ASSERT (dir);
+  dir->inode = inode;
+  dir->pos = 0;
+  return dir;
 }
 
 /* Opens the root directory and returns a directory for it.
@@ -70,8 +66,7 @@ dir_open (struct inode *inode)
 struct dir *
 dir_open_root (void)
 {
-  struct dir *ret = dir_open (inode_open (ROOT_DIR_SECTOR));
-  return ret;
+  return dir_open (inode_open (ROOT_DIR_SECTOR));
 }
 
 /* Opens and returns a new directory for the same inode as DIR.
@@ -79,22 +74,23 @@ dir_open_root (void)
 struct dir *
 dir_reopen (struct dir *dir)
 {
-  //printf ("dir_reopen opening %04x\n", dir->inode);
-  struct inode *in = inode_reopen (dir->inode);
-  //printf ("dir_reopen dir_opening %04x\n", in);
-  struct dir * d = dir_open (in);
-  //printf ("Dir == %04x\n", d);
-  return d;
+  ASSERT (dir);
+  struct inode *inode = inode_reopen (dir->inode);
+  return dir_open (inode);
 }
 
 /* Destroys DIR and frees associated resources. */
 void
 dir_close (struct dir *dir)
 {
+  ASSERT (dir);
   if (dir != NULL)
     {
+      ASSERT (dir->inode);
+      ASSERT (inode_is (dir->inode));
       inode_close (dir->inode);
       free (dir);
+      g_dir_freed++;
     }
 }
 
@@ -102,6 +98,7 @@ dir_close (struct dir *dir)
 struct inode *
 dir_get_inode (struct dir *dir)
 {
+  ASSERT (dir);
   return dir->inode;
 }
 
@@ -161,7 +158,9 @@ dir_lookup (const struct dir *dir, const char *name,
   if (lookup (dir, name, &e, NULL))
     *inode = inode_open (e.inode_sector);
   else
+  {
     *inode = NULL;
+  }
 
   // release_dir_lock(dir->inode);
   // printf("test end\n");
@@ -191,7 +190,9 @@ dir_add (struct dir *dir, const char *name, block_sector_t inode_sector)
 
   /* Check that NAME is not in use. */
   if (lookup (dir, name, NULL, NULL))
+  {
     goto done;
+  }
 
   /* Set OFS to offset of free slot.
      If there are no free slots, then it will be set to the
@@ -238,26 +239,33 @@ dir_remove (struct dir *dir, const char *name)
   // printf("name: %s\n", name);
   /* Find directory entry. */
   if (!lookup (dir, name, &e, &ofs))
-    goto done;
+  {
+    ASSERT (false);
+    return false;
+  }
 
   /* Open inode. */
   inode = inode_open (e.inode_sector);
+  ASSERT (inode);
   if (inode == NULL)
-    goto done;
+  {
+    return false;
+  }
 
   /* Erase directory entry. */
   e.in_use = false;
   
   if (inode_write_at (dir->inode, &e, sizeof e, ofs) != sizeof e)
-    goto done;
+  {
+    ASSERT (false);
+    inode_remove (inode);
+    return false;
+  }
 
   /* Remove inode. */
   inode_remove (inode);
-  success = true;
-
- done:
   inode_close (inode);
-  return success;
+  return true;
 }
 
 /* Reads the next directory entry in DIR and stores the name in
@@ -267,7 +275,8 @@ bool
 dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
 {
   struct dir_entry e;
-
+  ASSERT (dir);
+  ASSERT (dir->inode);
   while (inode_read_at (dir->inode, &e, sizeof e, dir->pos) == sizeof e)
     {
       dir->pos += sizeof e;
@@ -330,71 +339,6 @@ static bool is_relative(char *path) {
   else return true;
 }
 
-/* Opens the directory the path is referring to. 
-   Assumes caller closes directory. Leaves dir opened. */
-struct dir *get_dir_from_path(char *path) {
-
-  ASSERT (path != NULL);
-
-  struct thread *t = thread_current();
-  struct dir *cur_dir;
-  struct inode *next = NULL;
-  char part[NAME_MAX + 1];
-
-  const char *saved_path = path;
-
-  if (path[0] == '\0'){
-    // printf ("This thread's dir inode: %04x\n", t->cwd->inode);
-    //printf ("caling dir_reopen: %04x\n", t->cwd);
-    struct inode *cwd_i = dir_get_inode(t->cwd);
-    if (to_be_removed(cwd_i)) {
-      inode_close(cwd_i);
-      return NULL;
-    }
-    struct dir * ret = dir_reopen(t->cwd);
-    // printf ("get_dir_from_path returning %04x\n", ret);
-    return ret;
-  }
-
-  // Check if path is relative or absolute.
-  if (is_relative(path)) cur_dir = dir_reopen(t->cwd);
-  else cur_dir = dir_open_root();  
-
-  // Iterate through path and find subdirectories.
-  
-  int status = 0;
-  while (1) {
-    status = get_next_part(part, &saved_path);
-    // Name length was too long.
-    if (status == -1) {
-      dir_close(cur_dir);
-      return NULL;
-    }
-    // Reached end of path successfully. 
-    else if (status == 0) {
-      // dir_close(cur_dir);
-      return cur_dir;
-    }
-    // Got part of the path successfully.
-    else {
-      if (dir_lookup(cur_dir, part, &next)) {
-        // Check if result is a directory.
-        if (!inode_is_dir(next)) {
-          inode_close(next);
-          return NULL;
-        }
-
-        dir_close(cur_dir);
-        cur_dir = dir_open(next);
-      }
-      // Couldn't find next part of path in directory. Return NULL.
-      else {
-        dir_close(cur_dir);
-        return NULL;
-      }
-    }
-  }
-}
 
 /* Opens the inode the path is referring to, whether file or directory. */
 struct inode *get_inode_from_path(char *path) { 
@@ -407,22 +351,23 @@ struct inode *get_inode_from_path(char *path) {
 
   const char *saved_path = path;
 
-  /* if (*path == '\0') {
+  if (*path == '\0') {
     struct inode *cwd_i = dir_get_inode(t->cwd);
     if (to_be_removed(cwd_i)) {
-      inode_close(cwd_i);
       return NULL;
     }
-    struct dir * ret = dir_reopen(t->cwd);
-    return ret;
-  } */
+    inode_reopen(cwd_i);
+    return cwd_i;
+  } 
 
   if (strcmp(path, "/") == 0) {
     return dir_get_inode(dir_open_root());
   }
 
   // Check if path is relative or absolute.
-  if (is_relative(path)) cur_dir = dir_reopen(t->cwd);
+  if (is_relative(path)){
+    cur_dir = dir_reopen(t->cwd);
+  }
   else cur_dir = dir_open_root();  
 
   // Iterate through path and find subdirectories.
@@ -432,20 +377,28 @@ struct inode *get_inode_from_path(char *path) {
     // Name length was too long.
     if (status == -1) {
       dir_close(cur_dir);
+      ASSERT (strcmp (path, "..") != 0);
       return NULL;
     }
     // Reached end of path successfully. 
     else if (status == 0) {
       // dir_close(cur_dir);
       // free(cur_dir);
-      if (to_be_removed(next)) {
-        inode_close(next);
+      if (to_be_removed(dir_get_inode (cur_dir))) {
+        dir_close (cur_dir);
+        //inode_close(next);
         return NULL;
       }
-      return next;
+      struct inode *again = inode_reopen (dir_get_inode (cur_dir));
+      dir_close (cur_dir);
+      return again;
     }
     // Got part of the path successfully.
-    else {
+    else {// && !to_be_removed(dir_get_inode(cur_dir))
+      if (strcmp (path, "..") == 0)
+      {
+        printf ("dir_look up: %d\n", dir_lookup(cur_dir, part, &next));
+      }
       if (cur_dir != NULL && dir_lookup(cur_dir, part, &next)) {
         dir_close(cur_dir);
         // If next was not a directory, our next iteration will check if cur_dir was set to NULL.
@@ -458,6 +411,22 @@ struct inode *get_inode_from_path(char *path) {
       }
     }
   }
+}
+
+/* Opens the directory the path is referring to. 
+   Assumes caller closes directory. Leaves dir opened. */
+struct dir *get_dir_from_path(char *path) {
+  //printf ("get_dir_from_path 1: %s\n", path);
+  struct inode *inn = get_inode_from_path (path);
+  //printf ("get_dir_form_path inode: %04x\n", inn);
+  if (inn == NULL)
+  {
+    printf ("inn is null?!?!\n");
+    return NULL;
+  }
+  ASSERT (inode_is_dir (inn));
+  ASSERT (inode_is (inn));
+  return dir_open (inn);
 }
 
 /* Returns the subdirectory of the path. For example, returns "a/b/c/" on an input of "a/b/c/d" */

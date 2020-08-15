@@ -24,6 +24,7 @@
 
 static void syscall_handler (struct intr_frame *);
 struct lock file_lock;
+extern g_filesys_malloc;
 
 void
 syscall_init (void)
@@ -431,10 +432,17 @@ syscall_handler (struct intr_frame *f UNUSED)
     }
     /* Call the appropriate filesys function. */
     struct fd *f = cur->file_descriptors[fd];
+    static int g_filesys_free = 0;
     if (f != NULL) {
       if (f->file != NULL) file_close(f->file);
       if (f->dir != NULL) dir_close(f->dir);
       free(f);
+      g_filesys_free++;
+      if (g_filesys_malloc % 100 == 0)
+      {
+        // printf ("filesys malloced: %d\n", g_filesys_malloc);
+        // printf ("filesys freed: %d, not freed: %d\n", g_filesys_free, g_filesys_malloc - g_filesys_free);
+      }
       // cur->file_descriptors[i] = NULL;
     }
     // file_close(cur->file_descriptors[fd]);
@@ -524,7 +532,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     struct dir *subdir = get_subdir_from_path(file_name); //
     if (subdir == NULL) {
       // printf ("Subdirectory is null! %s\n", file_name);
-      file_close(subdir);
+      //dir_close(subdir);
       f->eax = 0;
       return;
     }
@@ -565,6 +573,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     //memcpy((char *)file_name, (char *)args[2], n + 1);
 
     struct fd *dir_d = cur->file_descriptors[fd];
+    ASSERT (dir_d->file == NULL ^ dir_d->dir == NULL);
     if (dir_d != NULL && dir_d->file == NULL && dir_d->dir != NULL) {
       f->eax = dir_readdir_2(dir_d->dir, (char *) args[2]);
       // printf("readdir sucess, dir_d->dir->inode->open_cnt is: %\nd", dir_get_inode (dir_d->dir)->open_cnt);

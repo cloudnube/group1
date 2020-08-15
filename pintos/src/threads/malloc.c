@@ -84,6 +84,8 @@ malloc_init (void)
     }
 }
 
+int g_malloc_bytes = 0;
+int g_freed_bytes = 0;
 /* Obtains and returns a new block of at least SIZE bytes.
    Returns a null pointer if memory is not available. */
 void *
@@ -149,6 +151,12 @@ malloc (size_t size)
   b = list_entry (list_pop_front (&d->free_list), struct block, free_elem);
   a = block_to_arena (b);
   a->free_cnt--;
+  g_malloc_bytes += 1;
+  if (g_malloc_bytes % 1000 == 0)
+  {
+    printf ("mallocked %d\n", g_malloc_bytes);
+    printf ("freed %d, unfreed mallocs: %d\n", g_freed_bytes, g_malloc_bytes - g_freed_bytes);
+  }
   lock_release (&d->lock);
   return b;
 }
@@ -220,6 +228,7 @@ free (void *p)
 {
   if (p != NULL)
     {
+          g_freed_bytes += 1;
       struct block *b = p;
       struct arena *a = block_to_arena (b);
       struct desc *d = a->desc;
