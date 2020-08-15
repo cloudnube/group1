@@ -300,11 +300,13 @@ byte_to_sector (const struct inode *inode, off_t pos)
   if (i < NUM_DIRECT_PTRS)
   {
     sector = inode_get_direct_ptr (inode->sector, i);
+    printf ("Get direct ptr\n");
   }
   else if (i < NUM_DIRECT_PTRS + Indirect_Block)
   {
     ASSERT (inode_get_single_ptr (inode->sector));
     sector = read_sector (inode_get_single_ptr (inode->sector), i - NUM_DIRECT_PTRS);
+    printf ("Get indirect ptr\n");
   }
   else
   {
@@ -314,6 +316,7 @@ byte_to_sector (const struct inode *inode, off_t pos)
     block_sector_t sec_mabel = read_sector (inode_get_double_ptr (inode->sector), dab / Indirect_Block);
     ASSERT (sec_mabel);
     sector = read_sector (sec_mabel, dab % Indirect_Block);
+    printf ("Get double ptr\n");
   }
   ASSERT (sector);
   return sector;
