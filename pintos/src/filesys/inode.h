@@ -32,5 +32,6 @@ block_sector_t *get_inode_sector(const struct inode*);
 uint32_t o_inumber (struct inode *); //Proj 3 added
 bool to_be_removed (struct inode *);
 bool inode_is (struct inode* inode);
+int inode_cnt (struct inode* inode);
 
 #endif /* filesys/inode.h */

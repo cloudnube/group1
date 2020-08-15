@@ -11,26 +11,30 @@ struct file
     bool deny_write;            /* Has file_deny_write() been called? */
   };
 
+int g_file_calloc = 0, g_file_freed = 0;
 /* Opens a file for the given INODE, of which it takes ownership,
    and returns the new file.  Returns a null pointer if an
    allocation fails or if INODE is null. */
 struct file *
 file_open (struct inode *inode)
 {
+  if (inode == NULL)
+  {
+    inode_close (inode);
+    return NULL;
+  }
+
   struct file *file = calloc (1, sizeof *file);
-  if (inode != NULL && file != NULL)
-    {
-      file->inode = inode;
-      file->pos = 0;
-      file->deny_write = false;
-      return file;
-    }
-  else
-    {
-      inode_close (inode);
-      free (file);
-      return NULL;
-    }
+  ASSERT (file);
+  g_file_calloc ++;
+  if (g_file_calloc % 100 == 0)
+  {
+    // printf ("file calloced: %d, freed: %d, unfreed: %d\n", g_file_calloc, g_file_freed, g_file_calloc - g_file_freed);
+  }
+  file->inode = inode;
+  file->pos = 0;
+  file->deny_write = false;
+  return file;
 }
 
 /* Opens and returns a new file for the same inode as FILE.
@@ -50,6 +54,7 @@ file_close (struct file *file)
       file_allow_write (file);
       inode_close (file->inode);
       free (file);
+      g_file_freed ++;
     }
 }
 

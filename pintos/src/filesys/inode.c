@@ -169,7 +169,6 @@ static bool inode_extend (struct inode_disk *disk_inode, size_t sectors)
     for (size_t i = from; i < from + sectors; i ++)
     {
       install_sector (disk_inode, i);
-      // printf ("Installed sector order %d\n", i);
     }
     return true;
   }
@@ -186,7 +185,6 @@ static bool inode_extend_to_bytes (struct inode_disk *disk_inode, size_t new_len
   if (disk_inode->length == 0)
   {
     if (inode_extend (disk_inode, to + 1)) {
-      // printf ("Extended 0 to %d bytes, to: %d\n", new_length, to + 1);
       disk_inode->length = new_length;
       return true;
     }
@@ -201,7 +199,6 @@ static bool inode_extend_to_bytes (struct inode_disk *disk_inode, size_t new_len
     return true;
   }
   if (inode_extend (disk_inode, to - from)) {
-      //printf ("Extended to from %d to %d bytes\n", disk_inode->length, new_length);
       disk_inode->length = new_length;
       return true;
   }
@@ -292,10 +289,14 @@ inode_create_wild (block_sector_t sector, off_t length, bool is_dir)
     disk_inode->magic = INODE_MAGIC;
     if (!can_allocate (length / BLOCK_SECTOR_SIZE))
     {
+      free (disk_inode);
       return false;
     }
     success = inode_extend_start (disk_inode, sector, sectors);
+    free (disk_inode);
+    return success;
   }
+  ASSERT (false);
   return success;
 }
 
@@ -328,7 +329,6 @@ inode_open (block_sector_t sector)
   struct list_elem *e;
   struct inode *inode;
 
-  //printf ("Opening a file sector: %d\n", sector);
   /* Check whether this inode is already open. */
   lock_acquire (&open_lock);
   for (e = list_begin (&open_inodes); e != list_end (&open_inodes);
@@ -343,12 +343,14 @@ inode_open (block_sector_t sector)
         }
     }
 
-  //printf ("Opening a file, allocate\n");
+
   /* Allocate memory. */
   inode = malloc (sizeof *inode);
   if (inode == NULL)
   {
-    //ASSERT (inode);
+      printf ("Created inodes: %d\n", g_inodes_created);
+      printf ("Freed inodes: %d\n", g_inodes_freed);
+    ASSERT (inode);
     lock_release (&open_lock);
     return NULL;
   }
@@ -391,10 +393,9 @@ block_sector_t
 inode_get_inumber (const struct inode *inode)
 {
   lock (inode);
-  block_sector_t mabel = inode->sector;
-  //printf("inode sector inside inode_get_number is: %d\n", mabel);
+  block_sector_t sector = inode->sector;
   rel (inode);
-  return mabel;
+  return sector;
 }
 
 /* Closes INODE and writes it to disk.
@@ -413,17 +414,13 @@ inode_close (struct inode *inode)
   /* Ignore null pointer. */
   if (inode == NULL)
   {
-  //lock_release (&ll);
     return;
   }
-  //lock_acquire (&ll);
-  //lock (inode);
   lock_acquire (&inode->inode_lock);
   bool should_free = false;
   /* Release resources if this was the last opener. */
   if (--inode->open_cnt == 0)
   {
-    //printf ("Inode coutn is zero: %04x\n", inode);
     /* Remove from inode list and release lock. */
     list_remove (&inode->elem);
 
@@ -479,7 +476,7 @@ inode_close (struct inode *inode)
     free (inode);
     if (g_inodes_created % 1000 == 0)
     {
-      // printf ("Created inodes: %d\n", g_inodes_created);
+      // printf ("Created -------------------------- inodes: %d\n", g_inodes_created);
       // printf ("Freed inodes: %d\n", g_inodes_freed);
     }
     //printf ("Freed %04x\n", inode);
@@ -809,4 +806,11 @@ bool to_be_removed (struct inode* inode) {
 bool inode_is (struct inode* inode)
 {
   return inode->magic == INODE_MAGIC;
+}
+
+int inode_cnt (struct inode* inode)
+{
+  ASSERT (inode);
+  ASSERT (inode->magic == INODE_MAGIC);
+  return inode->open_cnt;
 }

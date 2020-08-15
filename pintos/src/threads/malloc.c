@@ -154,8 +154,8 @@ malloc (size_t size)
   g_malloc_bytes += 1;
   if (g_malloc_bytes % 1000 == 0)
   {
-    printf ("mallocked %d\n", g_malloc_bytes);
-    printf ("freed %d, unfreed mallocs: %d\n", g_freed_bytes, g_malloc_bytes - g_freed_bytes);
+    // printf ("mallocked %d\n", g_malloc_bytes);
+    // printf ("freed %d, unfreed mallocs: %d\n", g_freed_bytes, g_malloc_bytes - g_freed_bytes);
   }
   lock_release (&d->lock);
   return b;
@@ -228,7 +228,7 @@ free (void *p)
 {
   if (p != NULL)
     {
-          g_freed_bytes += 1;
+      g_freed_bytes += 1;
       struct block *b = p;
       struct arena *a = block_to_arena (b);
       struct desc *d = a->desc;

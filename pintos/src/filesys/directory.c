@@ -51,9 +51,9 @@ dir_open (struct inode *inode)
 
   struct dir *dir = calloc (1, sizeof *dir);
   g_dir_calloc ++;
-  if (g_dir_calloc % 100 == 0)
+  if (g_dir_calloc % 1000 == 0)
   {
-    printf ("calloced: %d, freed: %d, unfreed: %d\n", g_dir_calloc, g_dir_freed, g_dir_calloc - g_dir_freed);
+    // printf ("dir calloced: %d, freed: %d, unfreed: %d\n", g_dir_calloc, g_dir_freed, g_dir_calloc - g_dir_freed);
   }
   ASSERT (dir);
   dir->inode = inode;
@@ -83,7 +83,6 @@ dir_reopen (struct dir *dir)
 void
 dir_close (struct dir *dir)
 {
-  ASSERT (dir);
   if (dir != NULL)
     {
       ASSERT (dir->inode);
@@ -124,6 +123,10 @@ lookup (const struct dir *dir, const char *name,
        ofs += sizeof e)
     if (e.in_use && !strcmp (name, e.name))
       {
+        if (strcmp (name, "..") == 0)
+        {
+          // printf ("Lookup .. success and in use!\n");
+        }
         if (ep != NULL)
           *ep = e;
         if (ofsp != NULL)
@@ -154,11 +157,16 @@ dir_lookup (const struct dir *dir, const char *name,
 
   // printf("test\n");
   // get_dir_lock(dir->inode);
-
+  bool dotdot = strcmp(name, "..") == 0;
   if (lookup (dir, name, &e, NULL))
+  {
     *inode = inode_open (e.inode_sector);
+    ASSERT (*inode);
+    ASSERT (inode_is (*inode));
+  }
   else
   {
+    ASSERT (dotdot != true);
     *inode = NULL;
   }
 
@@ -265,6 +273,9 @@ dir_remove (struct dir *dir, const char *name)
   /* Remove inode. */
   inode_remove (inode);
   inode_close (inode);
+  while (inode_is (inode))
+    inode_close (inode);
+  //printf ("Freed inode? %d\n", inode_cnt (inode));
   return true;
 }
 
@@ -397,8 +408,9 @@ struct inode *get_inode_from_path(char *path) {
     else {// && !to_be_removed(dir_get_inode(cur_dir))
       if (strcmp (path, "..") == 0)
       {
-        printf ("dir_look up: %d\n", dir_lookup(cur_dir, part, &next));
+        // printf ("dir_look up: %d, part: %s\n", dir_lookup(cur_dir, part, &next), part);
       }
+      ASSERT (!to_be_removed(dir_get_inode(cur_dir)));
       if (cur_dir != NULL && dir_lookup(cur_dir, part, &next) && !to_be_removed(dir_get_inode(cur_dir))) {
         dir_close(cur_dir);
         // If next was not a directory, our next iteration will check if cur_dir was set to NULL.
