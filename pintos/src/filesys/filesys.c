@@ -146,7 +146,9 @@ do_format (void)
 /* Project 3 Task 3 */
 
 bool filesys_create_2 (const char *name, off_t initial_size) {
+  // TODO: if subdir is null return null.
   struct dir *subdir = get_subdir_from_path(name);
+  if (subdir == NULL) return false;
 
   char part[NAME_MAX + 1];
   if (!get_last_part(part, &name)) return false;
