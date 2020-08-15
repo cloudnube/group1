@@ -80,7 +80,6 @@ test_main (void)
       CHECK (chdir (".."), "chdir \"..\"");
       CHECK (remove (dir_name), "remove \"%s\"", dir_name);
       CHECK (remove (file_name), "remove \"%s\"", file_name);
-      printf ("iteration: %d\n", i);
     }
   quiet = false;
 }
