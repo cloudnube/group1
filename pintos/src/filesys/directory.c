@@ -234,7 +234,6 @@ dir_remove (struct dir *dir, const char *name)
   /* Find directory entry. */
   if (!lookup (dir, name, &e, &ofs))
   {
-    ASSERT (false);
     return false;
   }
 
