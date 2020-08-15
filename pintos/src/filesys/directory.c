@@ -75,6 +75,10 @@ struct dir *
 dir_reopen (struct dir *dir)
 {
   ASSERT (dir);
+  if (!inode_is (dir->inode))
+  {
+    return NULL;
+  }
   struct inode *inode = inode_reopen (dir->inode);
   return dir_open (inode);
 }
@@ -86,8 +90,8 @@ dir_close (struct dir *dir)
   if (dir != NULL)
     {
       ASSERT (dir->inode);
-      ASSERT (inode_is (dir->inode));
-      inode_close (dir->inode);
+      if (inode_is (dir->inode))
+        inode_close (dir->inode);
       free (dir);
       g_dir_freed++;
     }
@@ -115,27 +119,17 @@ lookup (const struct dir *dir, const char *name,
 
   ASSERT (dir != NULL);
   ASSERT (name != NULL);
-  
-  // printf("test\n");
-  // get_dir_lock(dir->inode);
 
   for (ofs = 0; inode_read_at (dir->inode, &e, sizeof e, ofs) == sizeof e;
        ofs += sizeof e)
     if (e.in_use && !strcmp (name, e.name))
       {
-        if (strcmp (name, "..") == 0)
-        {
-          // printf ("Lookup .. success and in use!\n");
-        }
         if (ep != NULL)
           *ep = e;
         if (ofsp != NULL)
           *ofsp = ofs;
         return true;
       }
-
-  // release_dir_lock(dir->inode);
-  // printf("test end\n");
 
   return false;
 }
@@ -148,15 +142,11 @@ bool
 dir_lookup (const struct dir *dir, const char *name,
             struct inode **inode)
 {
-  // printf("dir is: %x\n", dir);
-  // printf("name is: %s\n", name);
   struct dir_entry e;
 
   ASSERT (dir != NULL);
   ASSERT (name != NULL);
 
-  // printf("test\n");
-  // get_dir_lock(dir->inode);
   bool dotdot = strcmp(name, "..") == 0;
   if (lookup (dir, name, &e, NULL))
   {
@@ -169,9 +159,6 @@ dir_lookup (const struct dir *dir, const char *name,
     ASSERT (dotdot != true);
     *inode = NULL;
   }
-
-  // release_dir_lock(dir->inode);
-  // printf("test end\n");
 
   return *inode != NULL;
 }
@@ -244,7 +231,6 @@ dir_remove (struct dir *dir, const char *name)
   ASSERT (dir != NULL);
   ASSERT (name != NULL);
 
-  // printf("name: %s\n", name);
   /* Find directory entry. */
   if (!lookup (dir, name, &e, &ofs))
   {
@@ -275,7 +261,6 @@ dir_remove (struct dir *dir, const char *name)
   inode_close (inode);
   while (inode_is (inode))
     inode_close (inode);
-  //printf ("Freed inode? %d\n", inode_cnt (inode));
   return true;
 }
 
@@ -308,7 +293,6 @@ dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
 
 static int
 get_next_part (char part[NAME_MAX + 1], const char **srcp) {
-  // printf("in get_next_part\n");
   const char *src = *srcp;
   char *dst = part;
   /* Skip leading slashes.  If it’s all slashes, we’re done. */
@@ -364,6 +348,9 @@ struct inode *get_inode_from_path(char *path) {
 
   if (*path == '\0') {
     struct inode *cwd_i = dir_get_inode(t->cwd);
+    if (!inode_is(cwd_i)) return NULL;
+    ASSERT (inode_is (cwd_i));
+    if (cwd_i == NULL) return NULL;
     if (to_be_removed(cwd_i)) {
       return NULL;
     }
@@ -378,6 +365,7 @@ struct inode *get_inode_from_path(char *path) {
   // Check if path is relative or absolute.
   if (is_relative(path)){
     cur_dir = dir_reopen(t->cwd);
+    if (cur_dir == NULL) return NULL;
   }
   else cur_dir = dir_open_root();  
 
@@ -406,10 +394,6 @@ struct inode *get_inode_from_path(char *path) {
     }
     // Got part of the path successfully.
     else {// && !to_be_removed(dir_get_inode(cur_dir))
-      if (strcmp (path, "..") == 0)
-      {
-        // printf ("dir_look up: %d, part: %s\n", dir_lookup(cur_dir, part, &next), part);
-      }
       ASSERT (!to_be_removed(dir_get_inode(cur_dir)));
       if (cur_dir != NULL && dir_lookup(cur_dir, part, &next) && !to_be_removed(dir_get_inode(cur_dir))) {
         dir_close(cur_dir);
@@ -428,12 +412,9 @@ struct inode *get_inode_from_path(char *path) {
 /* Opens the directory the path is referring to. 
    Assumes caller closes directory. Leaves dir opened. */
 struct dir *get_dir_from_path(char *path) {
-  //printf ("get_dir_from_path 1: %s\n", path);
   struct inode *inn = get_inode_from_path (path);
-  //printf ("get_dir_form_path inode: %04x\n", inn);
   if (inn == NULL)
   {
-    printf ("inn is null?!?!\n");
     return NULL;
   }
   ASSERT (inode_is_dir (inn));
@@ -458,9 +439,7 @@ struct dir *get_subdir_from_path(char *path) {
     path_len--;
   }
   copy[path_len] = '\0';
-  // printf("get_subdir_from_path about to call get_dir from get_subdir. file_name: %s\n", path);
   struct dir* ret = get_dir_from_path(copy);
-  // printf ("get_subdir_from_path returning %04x\n", ret);
   return ret;
 }
 
@@ -538,7 +517,7 @@ bool
 dir_readdir_2 (struct dir *dir, char name[NAME_MAX + 1])
 {
   struct dir_entry e;
-
+  if (!inode_is (dir->inode)) return false;
   while (inode_read_at (dir->inode, &e, sizeof e, dir->pos) == sizeof e)
     {
       dir->pos += sizeof e;

@@ -240,7 +240,9 @@ syscall_handler (struct intr_frame *f UNUSED)
     }
 
     /* Call the appropriate filesys function. */
+    // printf ("syscall open 1\n");
     struct fd *fp = filesys_open_2(file_name);
+    // printf ("syscall open 2\n");
     /* Assign a file descriptor. */
     if (fp == NULL) {
       f->eax = -1;
