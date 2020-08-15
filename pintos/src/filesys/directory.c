@@ -379,11 +379,8 @@ struct inode *get_inode_from_path(char *path) {
     }
     // Reached end of path successfully. 
     else if (status == 0) {
-      // dir_close(cur_dir);
-      // free(cur_dir);
       if (to_be_removed(dir_get_inode (cur_dir))) {
         dir_close (cur_dir);
-        //inode_close(next);
         return NULL;
       }
       struct inode *again = inode_reopen (dir_get_inode (cur_dir));
