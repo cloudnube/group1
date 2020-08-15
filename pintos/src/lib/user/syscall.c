@@ -188,3 +188,27 @@ inumber (int fd)
 {
   return syscall1 (SYS_INUMBER, fd);
 }
+
+int
+buffer_hit_count (void)
+{
+  return syscall0 (SYS_BUFHITS);
+}
+
+int
+buffer_miss_count (void)
+{
+  return syscall0 (SYS_BUFMISSES);
+}
+
+int
+buffer_stats_reset (void)
+{
+  return syscall0 (SYS_BUFSTATSRESET);
+}
+
+int
+buffer_reset (void)
+{
+  return syscall0 (SYS_BUFRESET);
+}

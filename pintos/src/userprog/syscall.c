@@ -13,6 +13,7 @@
 #include "filesys/inode.h"
 #include "filesys/directory.h"
 #include "devices/input.h"
+#include "devices/block.h"
 
 #include "threads/vaddr.h"
 #include "devices/shutdown.h"
@@ -26,6 +27,7 @@
 static void syscall_handler (struct intr_frame *);
 struct lock file_lock;
 extern g_filesys_malloc;
+extern int g_buffer_misses, g_buffer_hits;
 
 void
 syscall_init (void)
@@ -519,7 +521,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       return;
     }
     // If name is '/', return false.
-    if (file_name == "/") {
+    if (strcmp (file_name, "/") == 0) {
       f->eax = 0;
       return;
     }
@@ -638,29 +640,34 @@ syscall_handler (struct intr_frame *f UNUSED)
     struct fd *fd_inode = cur->file_descriptors[fd_to_find];
     struct inode * ii;
     if (fd_inode->dir == NULL) {
-      // printf("inumber sucess, fd_inode->file->inode->open_cnt is: %d\n", file_get_inode (fd_inode->file)->open_cnt));
       ii = file_get_inode(fd_inode->file);
-      // printf ("syscal inode: %04x, cout: \n", ii);
       inode_number = (block_sector_t) o_inumber(ii);
     }
     else {
       ii = dir_get_inode(fd_inode->dir);
-      // printf ("syscal dir inode: %04x, cout: \n", ii);
-      // printf("inumber sucess, fd_inode->dir->inode->open_cnt is: %d\n", dir_get_inode (fd_inode->dir)->open_cnt); 
       inode_number = (block_sector_t) o_inumber(ii);
     }
-    // printf("inode number is: %x\n", inode_number);
     f->eax = (uint32_t) inode_number;
     return;
+  }
 
-    /* block_sector_t *inode_number;
-    struct fd *fd_inode = cur->file_descriptors[fd_to_find];
-    if (fd_inode->dir == NULL) 
-      inode_number = get_inode_sector(fd_inode->file);
-    else inode_number = get_inode_sector(fd_inode->dir);
-    // printf("inode number is: %x\n", inode_number);
-    printf("inumber is :%d\n", *inode_number);
-    f->eax = (uint32_t) *inode_number;
-    return; */
+  if (args[0] == SYS_BUFHITS) {
+    f->eax = (uint32_t) g_buffer_hits;
+    return;
+  }
+  if (args[0] == SYS_BUFMISSES) {
+    f->eax = (uint32_t) g_buffer_misses;
+    return;
+  }
+  if (args[0] == SYS_BUFSTATSRESET) {
+    g_buffer_hits = 0;
+    g_buffer_misses = 0;
+    f->eax = (uint32_t) 1;
+    return;
+  }
+  if (args[0] == SYS_BUFRESET) {
+    flush_buffer_cache ();
+    f->eax = (uint32_t) 1;
+    return;
   }
 }
