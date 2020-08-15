@@ -114,8 +114,13 @@ filesys_remove (const char *name)
           bool success = dir_remove(subdir, part);
           return success;
         } 
-        else return false;
+        else {
+          inode_remove(inode);
+          dir_remove(subdir, part);
+          return false;
+        }
       } else {
+        inode_remove(inode);
         return dir_remove(subdir, part);
       }
     } else {

@@ -1,7 +1,6 @@
 /* Create a very deep "vine" of directories: /dir0/dir1/dir2/...
    and an ordinary file in each of them, until we fill up the
    disk.
-
    Then delete most of them, for two reasons.  First, "tar"
    limits file names to 100 characters (which could be extended
    to 256 without much trouble).  Second, a full disk has no room
@@ -28,6 +27,7 @@ test_main (void)
       char file_name[16], dir_name[16];
       char contents[128];
       int fd;
+
       /* Create file. */
       snprintf (file_name, sizeof file_name, "file%d", i);
       if (!create (file_name, 0))
@@ -41,6 +41,7 @@ test_main (void)
           break;
         }
       close (fd);
+
       /* Create directory. */
       snprintf (dir_name, sizeof dir_name, "dir%d", i);
       if (!mkdir (dir_name))

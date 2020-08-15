@@ -513,7 +513,7 @@ bool subdir_create(char *name, struct dir *parent) {
     struct dir* dot_entry = dir_open(inode_open(*new_sector));
     struct dir* dotdot_entry = dir_open(inode_open(*parent_sector));
     dir_add(dot_entry, ".", *new_sector);
-    dir_add(dotdot_entry, "..", *parent_sector);
+    dir_add(dot_entry, "..", *parent_sector);
     dir_close(dot_entry);
     dir_close(dotdot_entry);
     // printf("new directory: %x\n", new);

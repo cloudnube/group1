@@ -277,9 +277,10 @@ syscall_handler (struct intr_frame *f UNUSED)
         return;
     }
     /* Copy over args[1]. */
-    //char file_name[n];
-    //memcpy((char *) file_name, (char *) args[1], n + 1);
-    f->eax = filesys_remove((char *) args[1]);
+    char file_name[n + 1];
+    memcpy((char *) file_name, (char *) args[1], n + 1);
+    // printf("cwd open_cnt: %d\n", cur->cwd->inode->open_cnt);
+    f->eax = filesys_remove((char *) file_name);
   }
 
   if (args[0] == SYS_FILESIZE) {
