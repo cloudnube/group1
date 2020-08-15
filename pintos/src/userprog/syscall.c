@@ -20,6 +20,7 @@
 #include "userprog/process.h"
 
 #include "filesys/directory.h"
+#include "threads/malloc.h"
 
 
 static void syscall_handler (struct intr_frame *);
