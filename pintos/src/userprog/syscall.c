@@ -199,7 +199,7 @@ syscall_handler (struct intr_frame *f UNUSED)
         return;
     }
     /* Copy over args[1]. */
-    char file_name[n];
+    char file_name[n + 1];
     memcpy((char *) file_name, (char *) args[1], n + 1);
     /* Call the appropriate filesys function and store the return value. */
 
@@ -229,7 +229,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       return;
     }
     /* Copy over args[1]. */
-    char file_name[n];
+    char file_name[n + 1];
     memcpy((char *) file_name, (char *) args[1], n + 1);
 
     if (strlen(file_name) == 0) {
@@ -277,8 +277,8 @@ syscall_handler (struct intr_frame *f UNUSED)
         return;
     }
     /* Copy over args[1]. */
-    char file_name[n];
-    memcpy((char *) file_name, (char *) args[1], n + 1);
+    //char file_name[n];
+    //memcpy((char *) file_name, (char *) args[1], n + 1);
     f->eax = filesys_remove((char *) args[1]);
   }
 
@@ -459,7 +459,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       return;
     }
     /* Copy over args[1]. */
-    char file_name[n];
+    char file_name[n + 1];
     memcpy((char *)file_name, (char *)args[1], n + 1);
 
     // If name is empty, return false.
@@ -498,7 +498,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       return;
     }
     /* Copy over args[1]. */
-    char file_name[n];
+    char file_name[n + 1];
     memcpy((char *)file_name, (char *)args[1], n + 1);
 
     // If name is empty, return false.
@@ -560,8 +560,8 @@ syscall_handler (struct intr_frame *f UNUSED)
       return;
     }
     /* Copy over args[1]. */
-    char file_name[n];
-    memcpy((char *)file_name, (char *)args[2], n + 1);
+    //char file_name[n];
+    //memcpy((char *)file_name, (char *)args[2], n + 1);
 
     struct fd *dir_d = cur->file_descriptors[fd];
     if (dir_d != NULL && dir_d->file == NULL && dir_d->dir != NULL) {

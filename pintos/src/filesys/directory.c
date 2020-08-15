@@ -510,8 +510,12 @@ bool subdir_create(char *name, struct dir *parent) {
     inode_set_dir(new);
     block_sector_t *parent_sector = get_inode_sector(dir_get_inode(parent));
     block_sector_t *new_sector = get_inode_sector(new);
-    dir_add(dir_open(inode_open(*new_sector)), ".", *new_sector);
-    dir_add(dir_open(inode_open(*parent_sector)), "..", *parent_sector);
+    struct dir* dot_entry = dir_open(inode_open(*new_sector));
+    struct dir* dotdot_entry = dir_open(inode_open(*parent_sector));
+    dir_add(dot_entry, ".", *new_sector);
+    dir_add(dotdot_entry, "..", *parent_sector);
+    dir_close(dot_entry);
+    dir_close(dotdot_entry);
     // printf("new directory: %x\n", new);
     inode_close(new);
   } else {
