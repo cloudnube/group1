@@ -474,6 +474,8 @@ syscall_handler (struct intr_frame *f UNUSED)
       dir_close(cur->cwd);
       // printf("new cwd: %x\n", dir);
       cur->cwd = dir;
+      f->eax = true;
+      return;
     } else {
       f->eax = 0;
       return;

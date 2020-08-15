@@ -146,12 +146,15 @@ bool filesys_create_2 (const char *name, off_t initial_size) {
   char part[NAME_MAX + 1];
   if (!get_last_part(part, &name)) return false;
   block_sector_t inode_sector = 0;
+  // if (strcmp(name, "file563") == 0) printf("test\n");
   bool success = (subdir != NULL
                 && free_map_allocate (1, &inode_sector)
                 && inode_create (inode_sector, initial_size)
                 && dir_add (subdir, part, inode_sector));
-  if (!success && inode_sector != 0)
+  if (!success && inode_sector != 0) {
     free_map_release (inode_sector, 1);
+    return false;
+  }
   dir_close (subdir);
   return success;
 }
