@@ -391,8 +391,7 @@ struct inode *get_inode_from_path(char *path) {
       return again;
     }
     // Got part of the path successfully.
-    else {// && !to_be_removed(dir_get_inode(cur_dir))
-      ASSERT (!to_be_removed(dir_get_inode(cur_dir)));
+    else {
       if (cur_dir != NULL && dir_lookup(cur_dir, part, &next) && !to_be_removed(dir_get_inode(cur_dir))) {
         dir_close(cur_dir);
         // If next was not a directory, our next iteration will check if cur_dir was set to NULL.
