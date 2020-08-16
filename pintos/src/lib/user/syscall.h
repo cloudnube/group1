@@ -35,19 +35,10 @@ unsigned tell (int fd);
 void close (int fd);
 int practice (int i);
 
-/* For Student Test 1 */
 int buffer_accesses (void);
 int buffer_miss_count (void);
 void buffer_stats_reset (void);
 void buffer_reset (void);
-
-/* For Student Test 2 */
-int device_writes (void);
-int device_reads (void);
-
-/* Project 3 and optionally project 4. */
-mapid_t mmap (int fd, void *addr);
-void munmap (mapid_t);
 
 /* Project 4 only. */
 bool chdir (const char *dir);
@@ -55,5 +46,9 @@ bool mkdir (const char *dir);
 bool readdir (int fd, char name[READDIR_MAX_LEN + 1]);
 bool isdir (int fd);
 int inumber (int fd);
+
+/* For Student Test 2 */
+int device_writes (void);
+int device_reads (void);
 
 #endif /* lib/user/syscall.h */

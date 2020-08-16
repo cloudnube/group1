@@ -147,18 +147,6 @@ close (int fd)
   syscall1 (SYS_CLOSE, fd);
 }
 
-mapid_t
-mmap (int fd, void *addr)
-{
-  return syscall2 (SYS_MMAP, fd, addr);
-}
-
-void
-munmap (mapid_t mapid)
-{
-  syscall1 (SYS_MUNMAP, mapid);
-}
-
 bool
 chdir (const char *dir)
 {

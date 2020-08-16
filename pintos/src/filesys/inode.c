@@ -638,7 +638,7 @@ inode_read_at_no_buffer (struct inode *inode, void *buffer_, off_t size, off_t o
 off_t
 inode_write_at (struct inode *inode, const void *buffer_, off_t size,
                 off_t offset) {
-  // printf ("sector %d, inode_write from %d to %d\n", inode->sector, offset, offset + size);
+  // printf ("inode_write from %d to %d, writing %s\n", offset, offset + size, buffer_);
   ASSERT (inode);
   lock (inode);
   const uint8_t *buffer = buffer_;

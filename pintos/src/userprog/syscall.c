@@ -629,7 +629,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     // if (!is_valid((void *)args[1], cur) || args[1] == NULL) {
     //     exit_with_code(-1);
     // }
-
+   
     int fd_to_find = args[1];
 
     if (!is_valid_fd(fd_to_find, cur)) {
