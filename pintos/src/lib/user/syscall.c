@@ -212,3 +212,9 @@ buffer_reset (void)
 {
   return syscall0 (SYS_BUFRESET);
 }
+
+void
+cache_stats (void)
+{
+  return syscall0 (SYS_CACHESTAT);
+}

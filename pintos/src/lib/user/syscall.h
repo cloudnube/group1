@@ -35,10 +35,14 @@ unsigned tell (int fd);
 void close (int fd);
 int practice (int i);
 
+/* For Student Test 1 */
 int buffer_accesses (void);
 int buffer_miss_count (void);
 void buffer_stats_reset (void);
 void buffer_reset (void);
+
+/* For Student Test 2 */
+void cache_stats(void);
 
 /* Project 3 and optionally project 4. */
 mapid_t mmap (int fd, void *addr);
