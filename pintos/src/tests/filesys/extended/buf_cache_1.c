@@ -3,7 +3,11 @@
 #include "tests/lib.h"
 #include "tests/main.h"
 #include "lib/string.h"
+#include "lib/stdlib.h"
 #include <debug.h>
+
+void write_log (int fd, char *content, int times);
+void read_log (int fd, int length, int times);
 
 void write_log (int fd, char *content, int times)
 {
@@ -29,18 +33,16 @@ void read_log (int fd, int length, int times)
 void
 test_main (void)
 {
-  //msg ("Make -------------------- DIR");
-  // mkdir ("dir");
-  // msg ("Made -------------------- DIR");
   create ("/mabel.selfie", 0);
   int fd = open ("/mabel.selfie");
   char *hoopla = "Two and a Half Men. I watch that.";
   char *line = "0123456789";
-  char blargo[1 << 11];
+  char *blargo = malloc (2 << 20);
   buffer_reset ();
   write_log (fd, blargo, 1);
   seek (fd, 0);
   write_log (fd, line, 1000);
   seek (fd, 0);
   read_log (fd, strlen (line), 1000);
+  free (blargo);
 }
