@@ -24,16 +24,6 @@ struct dir_entry
   };
 
 int g_dir_calloc = 0, g_dir_freed = 0;
-/* Project 3 Task 3 Segment */
-// static void get_dir_lock(struct dir *dir) {
-//   struct inode *inode = dir->inode;
-//   lock_acquire(inode->inode_dir_lock);
-// }
-
-// static void rel_dir_lock(struct dir *dir) {
-//   lock_release(dir->inode->inode_dir_lock);
-// }
-/* End Segment */
 
 /* Creates a directory with space for ENTRY_CNT entries in the
    given SECTOR.  Returns true if successful, false on failure. */
@@ -52,10 +42,7 @@ dir_open (struct inode *inode)
 
   struct dir *dir = calloc (1, sizeof *dir);
   g_dir_calloc ++;
-  if (g_dir_calloc % 1000 == 0)
-  {
-    // printf ("dir calloced: %d, freed: %d, unfreed: %d\n", g_dir_calloc, g_dir_freed, g_dir_calloc - g_dir_freed);
-  }
+  if (g_dir_calloc % 1000 == 0) {}
   ASSERT (dir);
   dir->inode = inode;
   dir->pos = 0;
@@ -223,21 +210,21 @@ dir_add_unsynched (struct dir *dir, const char *name, block_sector_t inode_secto
      Otherwise, we'd need to verify that we didn't get a short
      read due to something intermittent such as low memory. */
 
-  // get_dir_lock(dir->inode);
+
   for (ofs = 0; inode_read_at (dir->inode, &e, sizeof e, ofs) == sizeof e;
        ofs += sizeof e)
     if (!e.in_use)
       break;
-  // release_dir_lock(dir->inode);
+
 
   /* Write slot. */
   e.in_use = true;
   strlcpy (e.name, name, sizeof e.name);
   e.inode_sector = inode_sector;
 
-  // get_dir_lock(dir->inode);
+
   success = inode_write_at (dir->inode, &e, sizeof e, ofs) == sizeof e;
-  // release_dir_lock(dir->inode);
+
 
  done:
   return success;
@@ -280,7 +267,7 @@ dir_remove (struct dir *dir, const char *name)
 
   /* Open inode. */
   inode = inode_open (e.inode_sector);
-  //printf ("looked ")
+
   ASSERT (inode);
   if (inode == NULL)
   {
@@ -289,7 +276,7 @@ dir_remove (struct dir *dir, const char *name)
 
   /* Erase directory entry. */
   e.in_use = false;
-  
+
   if (inode_write_at (dir->inode, &e, sizeof e, ofs) != sizeof e)
   {
     ASSERT (false);
@@ -348,7 +335,7 @@ get_next_part (char part[NAME_MAX + 1], const char **srcp) {
       *dst++ = *src;
     else
       return -1;
-    src++; 
+    src++;
   }
   *dst = '\0';
   /* Advance source pointer. */
@@ -378,7 +365,7 @@ static bool is_relative(char *path) {
 
 
 /* Opens the inode the path is referring to, whether file or directory. */
-struct inode *get_inode_from_path(char *path) { 
+struct inode *get_inode_from_path(char *path) {
   ASSERT (path != NULL);
 
   struct thread *t = thread_current();
@@ -398,7 +385,7 @@ struct inode *get_inode_from_path(char *path) {
     }
     inode_reopen(cwd_i);
     return cwd_i;
-  } 
+  }
 
   if (strcmp(path, "/") == 0) {
     return dir_get_inode(dir_open_root());
@@ -422,7 +409,7 @@ struct inode *get_inode_from_path(char *path) {
       ASSERT (strcmp (path, "..") != 0);
       return NULL;
     }
-    // Reached end of path successfully. 
+    // Reached end of path successfully.
     else if (status == 0) {
       if (to_be_removed(dir_get_inode (cur_dir))) {
         release_dir_lock (dir_get_inode (cur_dir));
@@ -453,7 +440,7 @@ struct inode *get_inode_from_path(char *path) {
   }
 }
 
-/* Opens the directory the path is referring to. 
+/* Opens the directory the path is referring to.
    Assumes caller closes directory. Leaves dir opened. */
 struct dir *get_dir_from_path(char *path) {
   struct inode *inn = get_inode_from_path (path);
@@ -470,7 +457,7 @@ struct dir *get_dir_from_path(char *path) {
 struct dir *get_subdir_from_path(char *path) {
   int path_len = strlen(path);
   char copy[PATH_MAX + 1];
-  memcpy(copy, path, path_len); 
+  memcpy(copy, path, path_len);
 
   const char *end = copy + path_len - 1;
 
@@ -487,33 +474,29 @@ struct dir *get_subdir_from_path(char *path) {
   return ret;
 }
 
-/* Creates a subdirectory with name "name" inside parent directory "parent". 
+/* Creates a subdirectory with name "name" inside parent directory "parent".
    The subdirectory has the . and .. entries appended to it.
    This code was derived from filesys_create in filesys.c. */
 
-// parent = /;
+
 bool subdir_create(char *name, struct dir *parent) {
-  // printf ("Dir create success? %d\n", 0);
-  // printf("inside subdir_create. file_name: %s\n", name);
   char new_name[NAME_MAX + 1];
   get_last_part(new_name, &name);
-  // printf("inside subdir_create. new_name: %s\n", new_name);
   block_sector_t inode_sector = 0;
   get_dir_lock (dir_get_inode (parent));
   bool success = (parent != NULL
                   && free_map_allocate (1, &inode_sector)
                   && dir_create (inode_sector, 2)
                   && dir_add_unsynched (parent, new_name, inode_sector));
-  
+
   if (!success){
     if (inode_sector != 0)
       free_map_release (inode_sector, 1);
-    // printf ("subdir_create failed! %s, dir: %04x\n", name, parent);
     release_dir_lock (dir_get_inode (parent));
     return false;
   }
   struct inode *new = NULL;
-  // get_dir_lock (dir_get_inode (parent));
+
   if (dir_lookup_unsynched(parent, new_name, &new)) {
     inode_set_dir(new);
     block_sector_t *parent_sector = get_inode_sector(dir_get_inode(parent));
@@ -524,16 +507,14 @@ bool subdir_create(char *name, struct dir *parent) {
     dir_add_unsynched(dot_entry, "..", *parent_sector);
     dir_close(dot_entry);
     dir_close(dotdot_entry);
-    // printf("new directory: %x\n", new);
+
     inode_close(new);
   } else {
-    // printf ("subdir_create parent look up failed! %s, dir: %04x\n", name, parent);
     success = false;
   }
-  
+
   release_dir_lock (dir_get_inode (parent));
   dir_close (parent);
-  // printf ("subdir_create success? %d\n", success);
   return success;
 }
 
@@ -558,7 +539,7 @@ bool is_empty(struct dir* dir) {
 bool
 dir_readdir_2 (struct dir *dir, char name[NAME_MAX + 1])
 {
-  //lock_acquire 
+  //lock_acquire
   get_dir_lock (dir_get_inode (dir));
   struct dir_entry e;
   if (!inode_is (dir->inode)) return false;

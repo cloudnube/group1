@@ -189,7 +189,7 @@ start_process (void *arg_set_)
 int
 process_wait (tid_t child_tid)
 {
-  struct thread * t = thread_current(); 
+  struct thread * t = thread_current();
   // Iterates through parent thread's list of child wait statuses to find wait status with matching tid.
   struct wait_status *child_wait_status = thread_get_wait_status(t, child_tid);
   // Invalid tid.
@@ -199,7 +199,7 @@ process_wait (tid_t child_tid)
   }
   // Waits for child process to exit.
   sema_down(&child_wait_status->o_sem_exited);
-  // If child was terminated by kernel, exit code is -1. 
+  // If child was terminated by kernel, exit code is -1.
   // Otherwise, exit code is what child process returned.
   int exit_code = child_wait_status->o_kernel_killed ? -1 : (int) child_wait_status->o_exit_code;
   // Remove child wait status from parent's list of child wait statuses.
@@ -225,7 +225,6 @@ process_exit (void)
       if (fd->file != NULL) file_close(fd->file);
       if (fd->dir != NULL) dir_close(fd->dir);
       free(fd);
-      // file_close(cur->file_descriptors[i]);
       cur->file_descriptors[i] = NULL;
     }
   }

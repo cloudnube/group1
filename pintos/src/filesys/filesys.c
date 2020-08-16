@@ -89,35 +89,21 @@ filesys_open (const char *name)
 bool
 filesys_remove (const char *name)
 {
-  /* Original Implementation */
-
-  /* struct dir *dir = dir_open_root ();
-  bool success = dir != NULL && dir_remove (dir, name);
-  dir_close (dir);
-
-  return success; */
-
   struct inode *inode = get_inode_from_path(name);
   if (inode != NULL) {
     struct dir *subdir = get_subdir_from_path(name);
     char part[NAME_MAX + 1];
-    // printf("name: %s\n", name);
     if (!get_last_part(part, &name)) return false;
-    // printf("subdir: %x\n", subdir);
     if (subdir != NULL) {
       if (inode_is_dir(inode)) {
-        // printf("test\n");
-        // debug_dir(dir_open(inode));
         struct dir *dirr = dir_open (inode);
         bool emp = is_empty (dirr);
         dir_close (dirr);
         if (emp) {
-          // printf("test2\n");
-          // printf("part: %s\n", part);
           bool success = dir_remove(subdir, part);
           dir_close (subdir);
           return success;
-        } 
+        }
         else {
           dir_close (subdir);
           return false;
@@ -151,14 +137,13 @@ do_format (void)
 /* Project 3 Task 3 */
 
 bool filesys_create_2 (const char *name, off_t initial_size) {
-  // TODO: if subdir is null return null.
   struct dir *subdir = get_subdir_from_path(name);
   if (subdir == NULL) return false;
 
   char part[NAME_MAX + 1];
   if (!get_last_part(part, &name)) return false;
   block_sector_t inode_sector = 0;
-  // if (strcmp(name, "file563") == 0) printf("test\n");
+
   bool success = (subdir != NULL
                 && free_map_allocate (1, &inode_sector)
                 && inode_create (inode_sector, initial_size)
@@ -170,13 +155,11 @@ bool filesys_create_2 (const char *name, off_t initial_size) {
   dir_close (subdir);
   return success;
 }
-  
+
 struct fd *
 filesys_open_2 (const char *name)
 {
   struct inode *inode = get_inode_from_path(name);
-  // printf ("filesys_open_2 inode is: %04x\n", inode);
-  //printf ("")
   if (inode != NULL) {
     struct fd *fd = (struct fd*) malloc (sizeof (struct fd));
     ASSERT (fd);
@@ -185,13 +168,10 @@ filesys_open_2 (const char *name)
       fd -> dir = dir_open(inode);
       fd -> file = NULL;
       return fd;
-      // return dir_open(inode);
     } else {
-      // struct fd *fd = {file_open(inode), NULL};
       fd -> dir = NULL;
       fd -> file = file_open(inode);
       return fd;
-      // return file_open(inode);
     }
   } else {
     return NULL;

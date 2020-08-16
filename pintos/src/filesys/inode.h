@@ -6,7 +6,7 @@
 #include "devices/block.h"
 
 struct bitmap;
-// uint32_t get_in (struct inode * ii);
+
 void inode_init (void);
 bool inode_create (block_sector_t, off_t);
 bool inode_create_wild (block_sector_t sector, off_t length, bool is_dir);

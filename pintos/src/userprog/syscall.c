@@ -218,12 +218,10 @@ syscall_handler (struct intr_frame *f UNUSED)
   if (args[0] == SYS_OPEN) {
     /* Check if &args[1] is valid.*/
     if (!is_valid((void *) args + 1, cur)) {
-      //lock_release(&file_lock);
       exit_with_code(-1);
     }
     /* Check if args[1] is valid and is not a null pointer. */
     if (!is_valid((void *) args[1], cur) || args[1] == 0) {
-      //lock_release(&file_lock);
       exit_with_code(-1);
     }
     /* Check every character in args[1] has a valid address until the null terminator. */
@@ -242,9 +240,8 @@ syscall_handler (struct intr_frame *f UNUSED)
     }
 
     /* Call the appropriate filesys function. */
-    // printf ("syscall open 1\n");
     struct fd *fp = filesys_open_2(file_name);
-    // printf ("syscall open 2\n");
+
     /* Assign a file descriptor. */
     if (fp == NULL) {
       f->eax = -1;
@@ -285,7 +282,6 @@ syscall_handler (struct intr_frame *f UNUSED)
     /* Copy over args[1]. */
     char file_name[n + 1];
     memcpy((char *) file_name, (char *) args[1], n + 1);
-    // printf("cwd open_cnt: %d\n", cur->cwd->inode->open_cnt);
     f->eax = filesys_remove((char *) file_name);
   }
 
@@ -412,7 +408,6 @@ syscall_handler (struct intr_frame *f UNUSED)
   if (args[0] == SYS_TELL) {
     /* Check if &args[1] is valid.*/
     if (!is_valid((void *) args + 1, cur)) {
-      //lock_release(&file_lock);
       exit_with_code(-1);
     }
     /* Check if fd is valid. */
@@ -443,14 +438,9 @@ syscall_handler (struct intr_frame *f UNUSED)
       if (f->dir != NULL) dir_close(f->dir);
       free(f);
       g_filesys_free++;
-      if (g_filesys_malloc % 100 == 0)
-      {
-        // printf ("filesys malloced: %d\n", g_filesys_malloc);
-        // printf ("filesys freed: %d, not freed: %d\n", g_filesys_free, g_filesys_malloc - g_filesys_free);
-      }
-      // cur->file_descriptors[i] = NULL;
+      if (g_filesys_malloc % 100 == 0){}
     }
-    // file_close(cur->file_descriptors[fd]);
+
     /* Free the fd for future use. */
     cur->file_descriptors[fd] = NULL;
   }
@@ -484,9 +474,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 
     struct dir *dir = get_dir_from_path(file_name);
     if (dir != NULL) {
-      // printf("prev cwd: %x\n", cur->cwd);
       dir_close(cur->cwd);
-      // printf("new cwd: %x\n", dir);
       cur->cwd = dir;
       f->eax = true;
       return;
@@ -532,19 +520,14 @@ syscall_handler (struct intr_frame *f UNUSED)
       f->eax = 0;
       return;
     }
-    // printf("getting inode failed, as it should. file_name: %s\n", file_name);
+
     // Get the directory the inode should be in.
     struct dir *subdir = get_subdir_from_path(file_name); //
     if (subdir == NULL) {
-      // printf ("Subdirectory is null! %s\n", file_name);
-      //dir_close(subdir);
       f->eax = 0;
       return;
     }
-    // printf("getting subdir succeeded, as it should. file_name: %s\n", file_name);
     f->eax = subdir_create(file_name, subdir);
-    // printf("finished calling subdir_create. file_name: %s\n", file_name);
-    // file_close(subdir);
   }
 
   if (args[0] == SYS_READDIR) {
@@ -573,15 +556,11 @@ syscall_handler (struct intr_frame *f UNUSED)
       f->eax = false;
       return;
     }
-    /* Copy over args[1]. */
-    //char file_name[n];
-    //memcpy((char *)file_name, (char *)args[2], n + 1);
 
     struct fd *dir_d = cur->file_descriptors[fd];
     ASSERT (dir_d->file == NULL ^ dir_d->dir == NULL);
     if (dir_d != NULL && dir_d->file == NULL && dir_d->dir != NULL) {
       f->eax = dir_readdir_2(dir_d->dir, (char *) args[2]);
-      // printf("readdir sucess, dir_d->dir->inode->open_cnt is: %\nd", dir_get_inode (dir_d->dir)->open_cnt);
       return;
     } else {
       f->eax = false;
@@ -625,11 +604,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     if (!is_valid((void *)args + 1, cur)) {
         exit_with_code(-1);
     }
-    /* Check if args[1] is valid and is not a null pointer. */
-    // if (!is_valid((void *)args[1], cur) || args[1] == NULL) {
-    //     exit_with_code(-1);
-    // }
-   
+
     int fd_to_find = args[1];
 
     if (!is_valid_fd(fd_to_find, cur)) {

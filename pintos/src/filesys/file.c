@@ -27,10 +27,7 @@ file_open (struct inode *inode)
   struct file *file = calloc (1, sizeof *file);
   ASSERT (file);
   g_file_calloc ++;
-  if (g_file_calloc % 100 == 0)
-  {
-    // printf ("file calloced: %d, freed: %d, unfreed: %d\n", g_file_calloc, g_file_freed, g_file_calloc - g_file_freed);
-  }
+  if (g_file_calloc % 100 == 0) {}
   file->inode = inode;
   file->pos = 0;
   file->deny_write = false;
@@ -99,7 +96,6 @@ file_read_at (struct file *file, void *buffer, off_t size, off_t file_ofs)
 off_t
 file_write (struct file *file, const void *buffer, off_t size)
 {
-  // printf ("file_write from %d of size: %d\n", file->pos, size);
   off_t bytes_written = inode_write_at (file->inode, buffer, size, file->pos);
   file->pos += bytes_written;
   return bytes_written;
@@ -172,5 +168,3 @@ file_tell (struct file *file)
   ASSERT (file != NULL);
   return file->pos;
 }
-
-

@@ -233,7 +233,7 @@ void read_buffered(struct block * block, block_sector_t sector , void * buffer, 
 	if (offset == -1) {
 		return read_not_buffered(block, sector , buffer, start, end);
 	}
-	//struct buffer_entry *cur = buffer_cache[offset];
+
 	enum intr_level old_level;
 	old_level = intr_disable (); // We disable interrupt because if we can't sema down we need to release the sector_lock atomically.
 	while (!sema_try_down(&active_sema)) {

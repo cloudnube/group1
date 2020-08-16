@@ -17,19 +17,6 @@
 int g_inodes_created = 0;
 int g_inodes_freed = 0;
 
-/* On-disk inode.
-   Must be exactly BLOCK_SECTOR_SIZE bytes long. */
-// struct inode_disk
-//   {
-//     off_t length;
-//     uint32_t is_dir;
-//     block_sector_t direct_ptrs[NUM_DIRECT_PTRS];
-//     block_sector_t single_ptr;
-//     block_sector_t double_ptr;
-//     unsigned magic;
-//     uint32_t unused[123 - NUM_DIRECT_PTRS];
-//   };
-
 uint8_t zero_block[BLOCK_SECTOR_SIZE] = {0};
 
 /* Returns the number of sectors to allocate for an inode SIZE
@@ -58,8 +45,7 @@ struct inode
     off_t length;
     struct lock inode_lock;
     struct condition until_not_extending;
-    struct condition until_no_writers;
-    //struct inode_disk data;             /* Inode content. */
+    struct condition until_no_writers;           /* No longer store Inode content. */
 
     uint32_t magic;
     /* Project 3 Task 3 */
@@ -125,16 +111,12 @@ struct inode
   {
     write_buffered (fs_device, sector, &tar, 8 + 4 * NUM_DIRECT_PTRS + 4, 8 + 4 * NUM_DIRECT_PTRS + 4 + sizeof (block_sector_t));
   }
-  
+
   void inode_set_magic(block_sector_t sector, unsigned magic)
   {
     write_buffered (fs_device, sector, &magic, 8 + 4 * NUM_DIRECT_PTRS + 8, 8 + 4 * NUM_DIRECT_PTRS + 8 + sizeof (unsigned));
   }
 
-// uint32_t get_in (struct inode * ii)
-// {
-//   return ii->open_cnt;
-// }
 
 static bool get_sector (block_sector_t *sector)
 {
@@ -280,7 +262,6 @@ static bool inode_extend_start (block_sector_t sector, size_t sectors)
   {
     install_sector (sector, i);
   }
-  //write_buffered (fs_device, sector, disk_inode, 0, BLOCK_SECTOR_SIZE);
   return true;
 }
 
@@ -359,20 +340,17 @@ inode_create_wild (block_sector_t sector, off_t length, bool is_dir)
 bool
 inode_create (block_sector_t sector, off_t length)
 {
-  return inode_create_wild (sector, length, 0); 
+  return inode_create_wild (sector, length, 0);
 }
 
 static void lock (struct inode *inode)
 {
   ASSERT (inode->magic == INODE_MAGIC);
-  // printf ("about to lock, %04x, acquire holder: %04x, count: %d\n", inode, inode->inode_lock.holder, inode->open_cnt);
   lock_acquire (&(inode->inode_lock));
-  // printf ("%04x, acquire holder: %04x, count: %d\n", inode, inode->inode_lock.holder, inode->open_cnt);
 }
 
 static void rel (struct inode *inode)
 {
-  // printf ("%04x, release holder: %04x, count: %d\n", inode, inode->inode_lock.holder, inode->open_cnt);
   lock_release (&(inode->inode_lock));
 }
 
@@ -422,9 +400,6 @@ inode_open (block_sector_t sector)
   /* Project 3 Task 3 */
   lock_init (&(inode->inode_dir_lock));
 
-  // block_read (fs_device, inode->sector, &inode->data);
-  //read_buffered (fs_device, inode->sector, &inode->data, 0, BLOCK_SECTOR_SIZE);
-  // printf ("Opening a file, return %04x\n", inode);
   g_inodes_created ++;
   return inode;
 }
@@ -516,7 +491,6 @@ inode_close (struct inode *inode)
     ASSERT (inode_is(inode));
     inode->magic = -1;
     g_inodes_freed ++;
-    //write_buffered (fs_device, inode->sector, &inode->data, 0, BLOCK_SECTOR_SIZE);
     free (inode);
   }
 }
@@ -538,7 +512,6 @@ inode_remove (struct inode *inode)
    Use the buffer cache instead of the bounce buffer. */
 off_t
 inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset) {
-  // printf ("inode_read from %d to %d\n", offset, offset + size);
   ASSERT (inode);
   lock (inode);
   uint8_t *buffer = buffer_;
@@ -638,7 +611,6 @@ inode_read_at_no_buffer (struct inode *inode, void *buffer_, off_t size, off_t o
 off_t
 inode_write_at (struct inode *inode, const void *buffer_, off_t size,
                 off_t offset) {
-  // printf ("inode_write from %d to %d, writing %s\n", offset, offset + size, buffer_);
   ASSERT (inode);
   lock (inode);
   const uint8_t *buffer = buffer_;
@@ -692,7 +664,6 @@ inode_write_at_no_buffer (struct inode *inode, const void *buffer_, off_t size,
   off_t bytes_written = 0;
   uint8_t *bounce = NULL;
   bool s = inode_extend_to_bytes (&inode, offset+size);
-  // printf ("Success?: %d, writing from %d to %d\n", s, offset, offset + size);
   if (inode->deny_write_cnt)
   {
     rel (inode);
@@ -703,7 +674,6 @@ inode_write_at_no_buffer (struct inode *inode, const void *buffer_, off_t size,
     {
       /* Sector to write, starting byte offset within sector. */
       block_sector_t sector_idx = byte_to_sector (inode, offset);
-      // printf ("Writing to sector %d, offset %d\n", sector_idx, offset);
       int sector_ofs = offset % BLOCK_SECTOR_SIZE;
 
       /* Bytes left in inode, bytes left in sector, lesser of the two. */
@@ -749,7 +719,6 @@ inode_write_at_no_buffer (struct inode *inode, const void *buffer_, off_t size,
     }
   free (bounce);
   rel (inode);
-  // printf ("written: %d\n", bytes_written);
   return bytes_written;
 }
 
@@ -784,7 +753,6 @@ off_t
 inode_length (const struct inode *inode)
 {
   ASSERT (inode);
-  // printf ("Getting length: %d\n", inode->data.length);
   return inode_get_length (inode->sector);
 }
 
@@ -827,7 +795,6 @@ block_sector_t *get_inode_sector(const struct inode* inode) {
 
 block_sector_t
 o_inumber (struct inode *inode) {
-  // printf ("o_inumber inode: %04x, cout: %d\n", inode, inode->open_cnt);
   ASSERT (inode != NULL);
   return inode_get_inumber(inode);
 }
