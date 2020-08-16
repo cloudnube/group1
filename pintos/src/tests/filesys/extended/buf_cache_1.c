@@ -6,43 +6,40 @@
 #include "lib/stdlib.h"
 #include <debug.h>
 
-void write_log (int fd, char *content, int times);
-void read_log (int fd, int length, int times);
+// both logging functions return the amount of cache misses
+int write_misses (int fd, char *content, int length, int times);
+int read_misses (int fd, char *content, int length, int times);
+#define LARGE_SIZE 512 * 10
+static char blargo[LARGE_SIZE];
 
-void write_log (int fd, char *content, int times)
+int write_misses (int fd, char *content, int length, int times)
 {
   buffer_stats_reset ();
   for (int i = 0; i < times; i ++)
-    write (fd, content, strlen (content));
-  int accesses = buffer_accesses ();
-  int hits = accesses - buffer_miss_count ();
-  msg ("wrote %d bytes, hits: %d, accesses %d", strlen (content) * times, hits, accesses);
+    write (fd, content, length);
+  int misses = buffer_miss_count ();
+  return misses;
 }
 
-void read_log (int fd, int length, int times)
+int read_misses (int fd, char *content, int length, int times)
 {
   buffer_stats_reset ();
-  char content[length];
   for (int i = 0; i < times; i ++)
     read (fd, content, length);
-  int accesses = buffer_accesses();
-  int hits = accesses - buffer_miss_count ();
-  msg ("read %d bytes, hits: %d, accesses %d", length * times, hits, accesses);
+  int misses = buffer_miss_count ();
+  return misses;
 }
 
 void
 test_main (void)
 {
-  create ("/mabel.selfie", 0);
-  int fd = open ("/mabel.selfie");
-  char *hoopla = "Two and a Half Men. I watch that.";
-  char *line = "0123456789";
-  char *blargo = malloc (2 << 20);
+  create ("/temp.file", 0);
+  int fd = open ("/temp.file");
   buffer_reset ();
-  write_log (fd, blargo, 1);
+  ASSERT (write_misses (fd, blargo, LARGE_SIZE, 1) > 0);
+  buffer_reset ();
   seek (fd, 0);
-  write_log (fd, line, 1000);
+  ASSERT (read_misses (fd, blargo, LARGE_SIZE, 1) > 0);
   seek (fd, 0);
-  read_log (fd, strlen (line), 1000);
-  free (blargo);
+  ASSERT (read_misses (fd, blargo, LARGE_SIZE, 1) == 0);
 }
