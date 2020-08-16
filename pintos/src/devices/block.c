@@ -294,6 +294,7 @@ void read_not_buffered(struct block * block , block_sector_t sector , void * buf
 	cur->dirty_bit = 0;
 	cur->buffer = malloc (BLOCK_SECTOR_SIZE);
 	lock_init(&cur->sector_lock);
+	g_buffer_misses ++;
 	block_read(block, sector, cur->buffer);
 
 	int offset = clock_algorithm_evict();
@@ -379,6 +380,7 @@ void write_not_buffered(struct block * block , block_sector_t sector , void * bu
 	cur->dirty_bit = 1;
 	cur->buffer = malloc (BLOCK_SECTOR_SIZE);
 	lock_init(&cur->sector_lock);
+	g_buffer_misses ++;
 	block_read(block, sector, cur->buffer);
 
 	int offset = clock_algorithm_evict();
@@ -468,7 +470,6 @@ check_sector (struct block *block, block_sector_t sector)
 void
 block_read (struct block *block, block_sector_t sector, void *buffer)
 {
-  g_buffer_misses ++;
   check_sector (block, sector);
   block->ops->read (block->aux, sector, buffer);
   block->read_cnt++;
