@@ -6,6 +6,7 @@
 #include "filesys/inode.h"
 #include "threads/malloc.h"
 #include "threads/thread.h"
+#include "threads/synch.h"
 
 /* A directory. */
 struct dir
@@ -494,22 +495,10 @@ bool is_empty(struct dir* dir) {
   return true;
 }
 
-/* void debug_dir(struct dir* dir) {
-  struct dir_entry e;
-  size_t ofs;
-  int i = 0;
-  ASSERT (dir != NULL);
-
-  for (ofs = 0 * (sizeof e); inode_read_at (dir->inode, &e, sizeof e, ofs) == sizeof e;
-       ofs += sizeof e)
-        i ++;
-    
-  return;
-} */
-
 bool
 dir_readdir_2 (struct dir *dir, char name[NAME_MAX + 1])
 {
+  //lock_acquire 
   struct dir_entry e;
   if (!inode_is (dir->inode)) return false;
   while (inode_read_at (dir->inode, &e, sizeof e, dir->pos) == sizeof e)
