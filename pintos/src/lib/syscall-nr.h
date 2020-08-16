@@ -37,7 +37,8 @@ enum
     SYS_BUFSTATSRESET,
     SYS_BUFRESET,
 
-    SYS_CACHESTAT,
+    SYS_DEVICE_WRITES,
+    SYS_DEVICE_READS,
   };
 
 #endif /* lib/syscall-nr.h */

@@ -6,46 +6,31 @@
 #include "lib/stdlib.h"
 #include <debug.h>
 
-void write_bbb (int fd, char *content);
-void read_bbb (int fd, int length);
+#define SECTORS 128
+#define ACCESS_SIZE 512 * SECTORS
+#define TOLERANCE 4
 
-void write_bbb (int fd, char *content)
+inline within_tolerance (int value, int target, int tolerance)
 {
-  buffer_stats_reset ();
-  for (int i = 0; i < 65536; i ++)
-    write (fd, content, 1);
-  msg("hello\n");
-  cache_stats ();
-  // int accesses = buffer_accesses ();
-  // int hits = accesses - buffer_miss_count ();
-  // msg ("wrote %d bytes, hits: %d, accesses %d", strlen (content) * times, hits, accesses);
+  return value <= target + tolerance && value >= target - tolerance;
 }
-
-void read_bbb (int fd, int length)
-{
-  buffer_stats_reset ();
-  char content[length];
-  for (int i = 0; i < 65536; i ++)
-    read (fd, content, 1);
-  cache_stats ();
-  // int accesses = buffer_accesses();
-  // int hits = accesses - buffer_miss_count ();
-  // msg ("read %d bytes, hits: %d, accesses %d", length * times, hits, accesses);
-}
-
 
 void
 test_main (void)
 {
-  create ("/testfile420", 0);
+  create ("/testfile420", ACCESS_SIZE);
   int fd = open ("/testfile420");
-
-  static char sixtyfourkb[65536];
-  buffer_reset ();
-  write_bbb (fd, sixtyfourkb);
-  msg("hello1\n");
+  char z;
+  int writes = device_writes ();
+  for (int i = 0; i < ACCESS_SIZE; i ++)
+    write (fd, &z, 1);
+  writes = device_writes () - writes;
+  ASSERT (within_tolerance (writes, SECTORS, TOLERANCE));
   seek (fd, 0);
-  read_bbb (fd, 65536);
-  seek (fd, 0);
-  // free (sixtyfourkb);
+  int reads = device_reads ();
+  for (int i = 0; i < ACCESS_SIZE; i ++)
+    read (fd, &z, 1);
+  reads = device_reads () - reads;
+  ASSERT (within_tolerance (reads, SECTORS, TOLERANCE));
+  return;
 }

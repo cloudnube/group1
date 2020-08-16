@@ -213,8 +213,14 @@ buffer_reset (void)
   return syscall0 (SYS_BUFRESET);
 }
 
-void
-cache_stats (void)
+int
+device_writes (void)
 {
-  return syscall0 (SYS_CACHESTAT);
+  return syscall0 (SYS_DEVICE_WRITES);
+}
+
+int
+device_reads (void)
+{
+  return syscall0 (SYS_DEVICE_READS);
 }

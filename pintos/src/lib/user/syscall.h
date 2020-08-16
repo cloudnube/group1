@@ -42,7 +42,8 @@ void buffer_stats_reset (void);
 void buffer_reset (void);
 
 /* For Student Test 2 */
-void cache_stats(void);
+int device_writes (void);
+int device_reads (void);
 
 /* Project 3 and optionally project 4. */
 mapid_t mmap (int fd, void *addr);

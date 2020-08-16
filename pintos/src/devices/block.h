@@ -58,6 +58,10 @@ void read_not_buffered(struct block *, block_sector_t, void *, off_t start, off_
 void write_buffered(struct block *, block_sector_t, void *, off_t start, off_t end);
 void write_not_buffered(struct block *, block_sector_t, void *, off_t start, off_t end);
 
+/* Test 2 */
+int get_read_cnt (struct block *block);
+int get_write_cnt (struct block *block);
+
 /* Finding block devices. */
 struct block *block_get_role (enum block_type);
 void block_set_role (enum block_type, struct block *);

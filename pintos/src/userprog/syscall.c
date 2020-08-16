@@ -668,8 +668,14 @@ syscall_handler (struct intr_frame *f UNUSED)
     flush_buffer_cache ();
     return;
   }
-  if (args[0] == SYS_CACHESTAT) {
-    block_print_stats();
+  if (args[0] == SYS_DEVICE_WRITES) {
+    struct block *block = block_get_role (BLOCK_FILESYS);
+    f->eax = (uint32_t) get_write_cnt (block);
+    return;
+  }
+  if (args[0] == SYS_DEVICE_READS) {
+    struct block *block = block_get_role (BLOCK_FILESYS);
+    f->eax = (uint32_t) get_read_cnt (block);
     return;
   }
 }
