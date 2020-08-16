@@ -300,13 +300,11 @@ byte_to_sector (const struct inode *inode, off_t pos)
   if (i < NUM_DIRECT_PTRS)
   {
     sector = inode_get_direct_ptr (inode->sector, i);
-    printf ("Get direct ptr\n");
   }
   else if (i < NUM_DIRECT_PTRS + Indirect_Block)
   {
     ASSERT (inode_get_single_ptr (inode->sector));
     sector = read_sector (inode_get_single_ptr (inode->sector), i - NUM_DIRECT_PTRS);
-    printf ("Get indirect ptr\n");
   }
   else
   {
@@ -316,7 +314,6 @@ byte_to_sector (const struct inode *inode, off_t pos)
     block_sector_t sec_mabel = read_sector (inode_get_double_ptr (inode->sector), dab / Indirect_Block);
     ASSERT (sec_mabel);
     sector = read_sector (sec_mabel, dab % Indirect_Block);
-    printf ("Get double ptr\n");
   }
   ASSERT (sector);
   return sector;
@@ -343,16 +340,10 @@ inode_init (void)
 bool
 inode_create_wild (block_sector_t sector, off_t length, bool is_dir)
 {
-  //struct inode_disk *disk_inode = NULL;
   bool success = false;
 
   ASSERT (length >= 0);
 
-  /* If this assertion fails, the inode structure is not exactly
-     one sector in size, and you should fix that. */
-  //ASSERT (sizeof *disk_inode == BLOCK_SECTOR_SIZE);
-
-  //disk_inode = calloc (1, sizeof *disk_inode);
   size_t sectors = bytes_to_sectors (length);
   if (can_allocate (sectors))
   {
@@ -362,22 +353,6 @@ inode_create_wild (block_sector_t sector, off_t length, bool is_dir)
     success = inode_extend_start (sector, sectors);
     return success;
   }
-  // if (disk_inode != NULL)
-  // {
-  //   size_t sectors = bytes_to_sectors (length);
-  //   disk_inode->length = length;
-  //   disk_inode->is_dir = is_dir;
-  //   disk_inode->magic = INODE_MAGIC;
-  //   if (!can_allocate (length / BLOCK_SECTOR_SIZE))
-  //   {
-  //     free (disk_inode);
-  //     return false;
-  //   }
-  //   success = inode_extend_start (sector, sectors);
-  //   free (disk_inode);
-  //   return success;
-  // }
-  ASSERT (false);
   return success;
 }
 
@@ -506,10 +481,7 @@ inode_close (struct inode *inode)
     /* Deallocate blocks if removed. */
     if (inode->removed)
     {
-      //printf ("I shall close inode: %04x\n", inode);
       free_map_release (inode->sector, 1);
-      // free_map_release (inode->data.start,
-      //                   bytes_to_sectors (inode->data.length));
       for (int i = 0; i < NUM_DIRECT_PTRS; i ++)
       {
         if (inode_get_direct_ptr (inode->sector, i) == 0) break;
@@ -537,14 +509,7 @@ inode_close (struct inode *inode)
       clear_data (inode_get_double_ptr (inode->sector), 3);
     }
     should_free = true;
-    // struct lock lock = inode->inode_lock;
-    // //free (inode);
-    // lock_release (&lock);
   }
-  //printf ("after inode: %04x, open: %d\n", inode, inode->open_cnt);
-  //printf ("b4 locking\n");
-  //rel (inode);
-  //printf ("exiting critical sectoni\n");
   lock_release (&inode->inode_lock);
   if (should_free)
   {
@@ -573,6 +538,7 @@ inode_remove (struct inode *inode)
    Use the buffer cache instead of the bounce buffer. */
 off_t
 inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset) {
+  // printf ("inode_read from %d to %d\n", offset, offset + size);
   ASSERT (inode);
   lock (inode);
   uint8_t *buffer = buffer_;
@@ -672,6 +638,7 @@ inode_read_at_no_buffer (struct inode *inode, void *buffer_, off_t size, off_t o
 off_t
 inode_write_at (struct inode *inode, const void *buffer_, off_t size,
                 off_t offset) {
+  // printf ("inode_write from %d to %d, writing %s\n", offset, offset + size, buffer_);
   ASSERT (inode);
   lock (inode);
   const uint8_t *buffer = buffer_;

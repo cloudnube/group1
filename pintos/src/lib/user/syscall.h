@@ -35,10 +35,10 @@ unsigned tell (int fd);
 void close (int fd);
 int practice (int i);
 
-int buffer_hit_count (void);
+int buffer_accesses (void);
 int buffer_miss_count (void);
-int buffer_stats_reset (void);
-int buffer_reset (void);
+void buffer_stats_reset (void);
+void buffer_reset (void);
 
 /* Project 3 and optionally project 4. */
 mapid_t mmap (int fd, void *addr);

@@ -7,7 +7,7 @@
 #include "threads/synch.h"
 #include "threads/interrupt.h"
 
-int g_buffer_misses = 0, g_buffer_hits = 0;
+int g_buffer_misses = 0, g_buffer_accesses = 0;
 
 /* A buffer cache entry struct. */
 struct buffer_entry {
@@ -215,14 +215,14 @@ int clock_algorithm_evict(void) {
 /* Read from cache_buffer to input_buffer, from start to end.
 src points to a sector. */
 void bounded_read(uint8_t *input_buffer, uint8_t *cache_buffer, off_t start, off_t end) {
-	g_buffer_hits ++;
+	g_buffer_accesses ++;
 	memcpy(input_buffer, cache_buffer + start, end - start);
 }
 
 /* Write from src to dest, from start to end.
 dest points to a sector. */
 void bounded_write(uint8_t *input_buffer, uint8_t *cache_buffer, off_t start, off_t end) {
-	g_buffer_hits ++;
+	g_buffer_accesses ++;
 	memcpy(cache_buffer + start, input_buffer, end - start);
 }
 

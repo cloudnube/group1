@@ -27,7 +27,7 @@
 static void syscall_handler (struct intr_frame *);
 struct lock file_lock;
 extern g_filesys_malloc;
-extern int g_buffer_misses, g_buffer_hits;
+extern int g_buffer_misses, g_buffer_accesses;
 
 void
 syscall_init (void)
@@ -651,8 +651,8 @@ syscall_handler (struct intr_frame *f UNUSED)
     return;
   }
 
-  if (args[0] == SYS_BUFHITS) {
-    f->eax = (uint32_t) g_buffer_hits;
+  if (args[0] == SYS_BUFACCESSES) {
+    f->eax = (uint32_t) g_buffer_accesses;
     return;
   }
   if (args[0] == SYS_BUFMISSES) {
@@ -660,14 +660,12 @@ syscall_handler (struct intr_frame *f UNUSED)
     return;
   }
   if (args[0] == SYS_BUFSTATSRESET) {
-    g_buffer_hits = 0;
+    g_buffer_accesses = 0;
     g_buffer_misses = 0;
-    f->eax = (uint32_t) 1;
     return;
   }
   if (args[0] == SYS_BUFRESET) {
     flush_buffer_cache ();
-    f->eax = (uint32_t) 1;
     return;
   }
 }

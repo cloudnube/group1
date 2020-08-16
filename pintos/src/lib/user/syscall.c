@@ -190,9 +190,9 @@ inumber (int fd)
 }
 
 int
-buffer_hit_count (void)
+buffer_accesses (void)
 {
-  return syscall0 (SYS_BUFHITS);
+  return syscall0 (SYS_BUFACCESSES);
 }
 
 int
@@ -201,13 +201,13 @@ buffer_miss_count (void)
   return syscall0 (SYS_BUFMISSES);
 }
 
-int
+void
 buffer_stats_reset (void)
 {
   return syscall0 (SYS_BUFSTATSRESET);
 }
 
-int
+void
 buffer_reset (void)
 {
   return syscall0 (SYS_BUFRESET);

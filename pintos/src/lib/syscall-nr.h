@@ -32,7 +32,7 @@ enum
     SYS_INUMBER,                 /* Returns the inode number for a fd. */
 
     /* Project 3 testing only. */
-    SYS_BUFHITS,
+    SYS_BUFACCESSES,
     SYS_BUFMISSES,
     SYS_BUFSTATSRESET,
     SYS_BUFRESET,
